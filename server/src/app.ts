@@ -2,6 +2,7 @@ import cookieParser from 'cookie-parser';
 import express from 'express';
 import { errorHandler } from './middleware/error-handler.js';
 import { authRouter } from './modules/auth/auth.routes.js';
+import { preferencesRouter } from './modules/preferences/preferences.routes.js';
 
 /**
  * Builds the Express app without starting it, so tests can drive it with supertest.
@@ -17,6 +18,7 @@ export function createApp() {
     res.json({ ok: true });
   });
   app.use('/api/auth', authRouter);
+  app.use('/api/preferences', preferencesRouter);
 
   app.use((_req, res) => {
     res.status(404).json({ error: 'Not found' });

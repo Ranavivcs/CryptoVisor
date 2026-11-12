@@ -23,6 +23,11 @@ One line per file: what it does. Read top to bottom to follow a request from the
 | `src/modules/auth/auth.schemas.ts` | zod schemas for register/login input (email trimmed and lower-cased) |
 | `src/modules/auth/auth.cookie.ts` | Cookie name and options (httpOnly, sameSite lax, secure in production) |
 | `src/modules/auth/auth.test.ts` | API tests: register, duplicate email, validation, login, the same 401 for wrong email and wrong password, logout, forged token |
+| `src/modules/preferences/preferences.catalog.ts` | The quiz choices: supported coins (CoinGecko ids), labels for investor and content types |
+| `src/modules/preferences/preferences.schemas.ts` | zod schema for the answers: known coins only, at least one of each, duplicates removed |
+| `src/modules/preferences/preferences.service.ts` | Read and upsert the user's Preferences row |
+| `src/modules/preferences/preferences.controller.ts` / `.routes.ts` | `GET /options`, `GET /`, `PUT /`, all behind `requireAuth` |
+| `src/modules/preferences/preferences.test.ts` | API tests: auth required, options, save completes onboarding, overwrite, validation |
 | `src/test/*` | Test setup: migrate the test DB once, truncate tables between tests, a signed-in agent helper |
 
 ## Client (`client/`)
@@ -39,4 +44,10 @@ One line per file: what it does. Read top to bottom to follow a request from the
 | `src/lib/errors.ts` | Turns an API error into field messages plus a form message |
 | `src/components/AuthLayout.tsx` | Shared card for the login and signup pages |
 | `src/components/ui/Button.tsx`, `TextField.tsx` | Reusable UI building blocks |
+| `src/api/preferences.ts` | Types and functions for the preferences endpoints |
+| `src/hooks/usePreferences.ts` | `usePreferenceOptions`, `usePreferences`, and `useSavePreferences`, which also flips `hasPreferences` in the cached user so the guard lets them through |
+| `src/pages/OnboardingPage.tsx` | The 3-step quiz, driven by a `STEPS` array; one PUT on the last step |
+| `src/components/onboarding/ChoiceCard.tsx` | A selectable answer card (`aria-pressed` toggle button) |
+| `src/components/onboarding/StepProgress.tsx` | "Step 2 of 3" and the progress bar |
+| `src/lib/toggle.ts` | Add or remove a value from a list (used for the multi-select questions) |
 | `src/pages/*` | One component per screen |

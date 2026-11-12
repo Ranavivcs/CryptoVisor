@@ -49,6 +49,9 @@ All responses are JSON. Errors look like `{ "error": string, "details"?: { field
 | POST | `/api/auth/login` | – | `{ email, password }` → `{ user }`, sets cookie. `401` on bad credentials |
 | POST | `/api/auth/logout` | – | `204`, clears cookie |
 | GET | `/api/auth/me` | ✓ | `{ user }` where `user = { id, email, name, hasPreferences }` |
+| GET | `/api/preferences/options` | ✓ | Quiz choices: `{ coins, investorTypes, contentTypes }` |
+| GET | `/api/preferences` | ✓ | `{ preferences }`, which is `null` before onboarding |
+| PUT | `/api/preferences` | ✓ | `{ assets: string[], investorType, contentTypes: string[] }` → `{ preferences }`. Creates or replaces |
 
 ## Docs
 

@@ -64,3 +64,14 @@ redirected to onboarding, kept the session after a reload, and stored a bcrypt h
 
 Result: https://cryptovisorai.vercel.app is live. `/api/*` on that domain goes through Vercel's rewrite to Render,
 so the auth cookie is first-party, as designed.
+
+**Onboarding quiz.** Design choices, applying the HiWay lessons:
+- The answer options live on the server and the client fetches them, so the UI and the validation can't disagree.
+- The three steps are an array of data rendered by one page, not three copy-pasted components.
+- Answers stay in the quiz component's local state and are saved in a single request at the end.
+
+A bug the tests caught: the second client test failed with "found multiple buttons", because Testing Library
+wasn't cleaning up between tests (that cleanup is automatic only with vitest globals). We added an explicit
+`cleanup` in the test setup.
+Verified in the browser: three steps, Next disabled until answered, one PUT, redirect to the dashboard,
+and the row in Postgres matches what was picked.
