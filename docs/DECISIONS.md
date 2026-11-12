@@ -1,0 +1,18 @@
+# Decision log
+
+Each row: what we chose, what else we considered, why, and what it costs us.
+
+| # | Decision | Alternatives | Why | Trade-off |
+|---|---|---|---|---|
+| 1 | **React + Vite + TypeScript** on the client, **Node + Express + TypeScript** on the server, in one repo (`client/`, `server/`) | Angular; Next.js full-stack; plain JS | The assignment asks for React and the role is React + Node. One language end to end. Types document the data shapes shared by client and server | TypeScript adds syntax; types are duplicated between client and server instead of shared from a package (fine at this size) |
+| 2 | **PostgreSQL on Neon** via **Prisma** | MongoDB Atlas; SQLite; Render Postgres | Relational data (users → preferences → feedback) with uniqueness rules the DB enforces. Neon's free tier doesn't expire (Render's free Postgres is deleted after 30 days). Prisma gives a readable schema file and typed queries | Prisma is an extra abstraction over SQL; Neon cold-starts after idle |
+| 3 | **JWT in an httpOnly cookie**, API called on the **same origin** (Vite proxy locally, Vercel rewrite `/api/*` → Render in production) | JWT in localStorage + `Authorization` header; server sessions | Page JavaScript can't read an httpOnly cookie, so an XSS bug can't steal the token. Same origin means `SameSite=Lax` works and no CORS setup is needed | No server-side session list, so a token can't be revoked before it expires (7 days). Acceptable for this scope |
+| 4 | **Feature modules** on the server (`modules/auth/{routes,controller,service,schemas}`) | One folder per layer (`routes/`, `controllers/`, `services/`) | Everything about one feature sits together. Inside a module the layers are still separate: routes wire middleware, controllers translate HTTP, services hold logic and talk to the DB | Slightly more files per feature |
+| 5 | **zod** validation at the API boundary (`validateBody` middleware) and for env vars (`config/env.ts`) | Manual checks; express-validator | One schema both validates and produces the TypeScript type. Bad env fails at startup, not on the first request | One more library |
+| 6 | **One error shape**: services throw `HttpError(status, message)`; one `errorHandler` writes `{ error, details? }` | try/catch + `res.status()` in every controller | No duplicated error code. The client has one `ApiError` to handle | None significant |
+| 7 | **Same 401 for a wrong email and a wrong password** | Separate "user not found" message | Doesn't reveal which emails have accounts (user enumeration) | Slightly less helpful message |
+| 8 | "Onboarding done" = **a `Preferences` row exists** | A boolean `onboarded` flag on `User` | One source of truth; a flag could drift out of sync with the data | None |
+| 9 | **TanStack Query** for server data on the client | `useEffect` + `useState` fetching; Redux | Caching, loading/error states and retries without hand-written effects (HiWay lesson: no `useEffect` that doesn't need to exist). The signed-in user lives in the query cache, so login/logout update every guard at once | A library to learn; `staleTime`/cache keys need care |
+| 10 | **Route guards as layout routes** (`RequireAuth`, `GuestOnly`) | Checks inside every page | Pages don't know about auth; the redirect rules live in one file and are tested | None |
+| 11 | **Tailwind CSS** | CSS Modules; a component library (MUI) | Fast to build a clean, consistent UI; no separate stylesheet per component | Long class strings in JSX; repeated patterns are extracted into components (`Button`, `TextField`) |
+| 12 | **Tests against a real Postgres** (Docker locally, separate `moveo_test` DB) | Mocking Prisma | Tests catch real DB behaviour (unique constraints, cascades) | Tests need Docker running |

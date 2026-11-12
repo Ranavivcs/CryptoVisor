@@ -1,0 +1,21 @@
+# Render Blueprint: the API service. The database lives on Neon (see README).
+services:
+  - type: web
+    name: cryptovisor-api
+    runtime: node
+    plan: free
+    region: frankfurt # same region as the Neon database
+    rootDir: server
+    # --include=dev: the TypeScript compiler and Prisma CLI are dev dependencies needed to build.
+    buildCommand: npm ci --include=dev && npm run build && npx prisma migrate deploy
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: "22"
+      - key: DATABASE_URL
+        sync: false # entered by hand in the Render dashboard (the Neon connection string)
+      - key: JWT_SECRET
+        generateValue: true
