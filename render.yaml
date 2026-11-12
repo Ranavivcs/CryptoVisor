@@ -19,3 +19,8 @@ services:
         sync: false # entered by hand in the Render dashboard (the Neon connection string)
       - key: JWT_SECRET
         generateValue: true
+      # Optional: without these keys, news and the AI insight use their built-in fallbacks.
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: CRYPTOPANIC_API_KEY
+        sync: false

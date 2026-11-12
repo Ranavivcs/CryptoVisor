@@ -28,6 +28,19 @@ One line per file: what it does. Read top to bottom to follow a request from the
 | `src/modules/preferences/preferences.service.ts` | Read and upsert the user's Preferences row |
 | `src/modules/preferences/preferences.controller.ts` / `.routes.ts` | `GET /options`, `GET /`, `PUT /`, all behind `requireAuth` |
 | `src/modules/preferences/preferences.test.ts` | API tests: auth required, options, save completes onboarding, overwrite, validation |
+| `src/lib/cache.ts` | `TtlCache`: cache-aside with a TTL, which serves the stale value if a reload fails |
+| `src/lib/http.ts` | `fetchJson` / `fetchText`: external HTTP calls with a timeout; throw on non-2xx |
+| `src/providers/types.ts` | `Sourced<T>` = `{ source: 'live' \| 'fallback', data }` |
+| `src/providers/prices.coingecko.ts` | CoinGecko markets → our `CoinMarket` type, sparkline thinned to 42 points, cached 60 s |
+| `src/providers/news.ts` | News orchestrator: tries CryptoPanic (if keyed) → RSS → `data/news.json`; tags and ranks stories by the user's coins |
+| `src/providers/news.cryptopanic.ts` | CryptoPanic adapter: posts → `NewsItem` (needs a paid key) |
+| `src/providers/news.rss.ts` | Cointelegraph RSS adapter: parses the XML with `fast-xml-parser`, strips tracking parameters |
+| `src/providers/insight.openrouter.ts` | Builds the prompt, calls OpenRouter (with model fallbacks), or returns the rule-based fallback |
+| `src/providers/memes.ts` | Reddit memes (NSFW filtered), random pick that skips downvoted ones; falls back to `data/memes.json` |
+| `src/modules/dashboard/dashboard.service.ts` | One function per section: load preferences → call provider → attach `myVote`. Stores the daily insight |
+| `src/modules/dashboard/dashboard.routes.ts` | The 4 section endpoints (handlers are one-liners, so there's no separate controller) |
+| `src/modules/feedback/*` | Vote schema, upsert/delete with the preferences snapshot, routes and tests |
+| `src/test/fake-apis.ts` | Replaces `fetch` with per-host fakes so tests never call real APIs |
 | `src/test/*` | Test setup: migrate the test DB once, truncate tables between tests, a signed-in agent helper |
 
 ## Client (`client/`)
@@ -50,4 +63,14 @@ One line per file: what it does. Read top to bottom to follow a request from the
 | `src/components/onboarding/ChoiceCard.tsx` | A selectable answer card (`aria-pressed` toggle button) |
 | `src/components/onboarding/StepProgress.tsx` | "Step 2 of 3" and the progress bar |
 | `src/lib/toggle.ts` | Add or remove a value from a list (used for the multi-select questions) |
+| `src/api/dashboard.ts` | Types for the 4 sections, plus `sendVote` (PUT for a vote, DELETE to clear it) |
+| `src/hooks/useDashboard.ts` | One query hook per section, each with its own refresh policy |
+| `src/hooks/useVote.ts` | Optimistic thumb state for one item, rolled back on error |
+| `src/components/dashboard/SectionCard.tsx` | Shared card shell: title, "Sample" badge, loading skeleton, error and retry. Takes the query and a render function |
+| `src/components/dashboard/{Insight,Prices,News,Meme}Section.tsx` | The four sections; each renders its data inside a `SectionCard` |
+| `src/components/dashboard/VoteButtons.tsx` | 👍/👎 for one item |
+| `src/components/dashboard/Sparkline.tsx` | 7-day price line as one SVG polyline |
+| `src/lib/sectionOrder.ts` | Content preferences → order of the sections |
+| `src/lib/format.ts` | Money, percent and "3 hours ago" formatting |
+| `src/pages/DashboardPage.tsx` | Header, plus the sections in preference order |
 | `src/pages/*` | One component per screen |

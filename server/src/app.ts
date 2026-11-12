@@ -2,6 +2,8 @@ import cookieParser from 'cookie-parser';
 import express from 'express';
 import { errorHandler } from './middleware/error-handler.js';
 import { authRouter } from './modules/auth/auth.routes.js';
+import { dashboardRouter } from './modules/dashboard/dashboard.routes.js';
+import { feedbackRouter } from './modules/feedback/feedback.routes.js';
 import { preferencesRouter } from './modules/preferences/preferences.routes.js';
 
 /**
@@ -19,6 +21,8 @@ export function createApp() {
   });
   app.use('/api/auth', authRouter);
   app.use('/api/preferences', preferencesRouter);
+  app.use('/api/dashboard', dashboardRouter);
+  app.use('/api/feedback', feedbackRouter);
 
   app.use((_req, res) => {
     res.status(404).json({ error: 'Not found' });

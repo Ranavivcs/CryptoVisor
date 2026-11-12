@@ -75,3 +75,72 @@ wasn't cleaning up between tests (that cleanup is automatic only with vitest glo
 `cleanup` in the test setup.
 Verified in the browser: three steps, Next disabled until answered, one PUT, redirect to the dashboard,
 and the row in Postgres matches what was picked.
+
+**A "bug" that wasn't.** While testing, I reported "HODLer" as a typo for "HOLDer". The AI pointed out that it's
+intentional crypto slang (from a 2013 forum post, "I AM HODLING"), and that the assignment itself uses this spelling.
+We kept it.
+
+**Scoping the login polish.** I suggested an email confirmation, a way back to sign-in from signup, and a password
+strength meter. We weighed each against the brief ("clean UX, readable code, good structure") and against the
+reviewers' experience:
+- Email confirmation would make reviewers check an inbox before seeing the dashboard, so it moves to
+  "what I'd add for production".
+- The sign-in link already existed but was easy to miss, so it gets a visibility fix.
+- The strength meter has low value with a minimum of 8 characters. A show/hide toggle and a "waking up the server"
+  message, for Render's cold start, matter more.
+All of these go on Saturday's polish list, so the dashboard comes first.
+
+## Day 2 (Friday, started Thursday evening): the dashboard
+
+**Checking the free APIs before writing code against them.** CoinGecko and the meme proxy work without a key.
+CryptoPanic and CoinDesk both need keys, and OpenRouter has 13 free models. So: news is CryptoPanic with a static
+fallback (the spec allows it), and the LLM model list is configuration, because free models come and go.
+
+**Design choices:**
+- One endpoint and one card per section, so one slow source doesn't block the page.
+- Each external API is wrapped in a provider that maps its response to our own type and owns the fallback.
+- Responses say `live` or `fallback`, and the UI shows a "Sample" badge on fallback data, so we never pass
+  sample content off as live.
+- No fallback for prices: a made-up price in a finance app is worse than an error.
+- The daily insight is stored with the exact prompt and model that produced it.
+- Votes store a snapshot of what the user saw plus their preferences at that moment, because items rotate,
+  and a bare id would be useless as training data later.
+- The feedback is used once immediately: memes you vote down never come back.
+
+**Verified:** 28 server tests (external APIs are faked per host, so the tests never touch the internet) and 10 client
+tests. In the browser: live prices with sparklines, a live Reddit meme, fallback news and insight (no keys locally),
+the sections ordered by my preferences, and a 👍 stored in Postgres with the full snapshot.
+
+**CryptoPanic's free API key is gone.** When I went to get the key, CryptoPanic's API dashboard said
+"To start using API, please upgrade to a Paid API Plan". The assignment lists it under "Suggested **Free** APIs",
+so it was probably written before CryptoPanic dropped its free tier. I asked the AI which option the assignment
+recommends. Its answer: the letter of the spec allows "CryptoPanic API or static fallback", but the intent is free, live
+news. We chose to keep the CryptoPanic adapter as an optional first source and add Cointelegraph's free RSS feed as the
+live source, with the built-in explainers as the last fallback (decision 26). Because each source is its own adapter,
+this was one new file and one line in the news orchestrator.
+Two bugs the tests caught while adding RSS:
+- My ranking change briefly let explainers about *other* coins through as "general news". We restored the rule that
+  only untagged stories count as general.
+- One of my test expectations was wrong about XML: text inside `CDATA` is literal, so `&amp;` stays `&amp;`.
+  Real feeds also use entities in plain titles, so we enabled HTML entity decoding and tested that case instead.
+
+**Making the AI insight actually live.** With my OpenRouter key, the insight still showed the fallback. The server log
+said "the model returned no text". The AI wrote a small probe script (printing only status codes and lengths, never the
+key) and found two causes: both Gemma models were rate-limited (429), and Nemotron is a reasoning model that spent its whole
+token budget "thinking". Sending `reasoning: { enabled: false }` and putting the fast models first fixed it (decision 27).
+The insight now comes from a real model and refers to the real prices.
+
+**A secret-handling slip, and the fix.** I had pasted the OpenRouter key into `.env` on a line without the
+`OPENROUTER_API_KEY=` prefix. The AI's command for listing variable *names* only masked `NAME=value` lines, so the bare
+key line was printed into our chat. It never reached git (`.env` is ignored), but a key that has appeared in a chat log counts as exposed, so I rotated it and updated both `.env` and Render. The AI then
+added the missing prefix in place without printing anything. Lesson: when a value might be malformed, check its shape
+(for example, count matching lines) instead of printing a "masked" view.
+
+**Mobile layout bug found in the browser, not by the tests.** At phone width the page scrolled sideways. Measuring element
+widths showed the cards were 800px wide: a CSS grid column grows to its widest content, here a meme image's
+natural width. The fix: `grid-cols-1` (a column allowed to shrink), `min-w-0` on the cards, and hiding the sparkline
+on very narrow screens.
+
+**CoinGecko key?** We never needed one. The public `/coins/markets` endpoint works without a key, and with a 60-second
+cache we make at most one call per coin set per minute. The code accepts an optional free "demo" key
+(`COINGECKO_API_KEY`) as insurance against rate limits on Render's shared IP addresses.

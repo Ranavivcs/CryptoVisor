@@ -1,0 +1,18 @@
+[
+  { "id": "static-btc-how", "title": "How Bitcoin works: blocks, miners and the 21M supply cap", "url": "https://bitcoin.org/en/how-it-works", "sourceName": "Bitcoin.org", "publishedAt": null, "coins": ["BTC"] },
+  { "id": "static-btc-paper", "title": "Read the original Bitcoin whitepaper (9 pages)", "url": "https://bitcoin.org/bitcoin.pdf", "sourceName": "Bitcoin.org", "publishedAt": null, "coins": ["BTC"] },
+  { "id": "static-eth-what", "title": "What is Ethereum? Smart contracts in plain English", "url": "https://ethereum.org/en/what-is-ethereum/", "sourceName": "ethereum.org", "publishedAt": null, "coins": ["ETH"] },
+  { "id": "static-eth-staking", "title": "Ethereum staking explained: how validators earn rewards", "url": "https://ethereum.org/en/staking/", "sourceName": "ethereum.org", "publishedAt": null, "coins": ["ETH"] },
+  { "id": "static-sol-core", "title": "Solana core concepts: accounts, programs and transactions", "url": "https://solana.com/docs/core", "sourceName": "solana.com", "publishedAt": null, "coins": ["SOL"] },
+  { "id": "static-bnb", "title": "BNB Chain overview: the ecosystem behind BNB", "url": "https://www.bnbchain.org/en", "sourceName": "BNB Chain", "publishedAt": null, "coins": ["BNB"] },
+  { "id": "static-xrp", "title": "Introduction to the XRP Ledger", "url": "https://xrpl.org/docs/introduction", "sourceName": "xrpl.org", "publishedAt": null, "coins": ["XRP"] },
+  { "id": "static-ada", "title": "Cardano documentation: proof of stake and native tokens", "url": "https://docs.cardano.org/", "sourceName": "Cardano Docs", "publishedAt": null, "coins": ["ADA"] },
+  { "id": "static-doge", "title": "Dogecoin: from meme to top-10 coin", "url": "https://dogecoin.com/", "sourceName": "dogecoin.com", "publishedAt": null, "coins": ["DOGE"] },
+  { "id": "static-avax", "title": "Avalanche: subnets and fast finality", "url": "https://www.avax.network/", "sourceName": "avax.network", "publishedAt": null, "coins": ["AVAX"] },
+  { "id": "static-link", "title": "Blockchain oracles explained: how Chainlink brings real-world data on-chain", "url": "https://chain.link/education/blockchain-oracles", "sourceName": "Chainlink", "publishedAt": null, "coins": ["LINK"] },
+  { "id": "static-dot", "title": "Polkadot wiki: parachains and shared security", "url": "https://wiki.polkadot.network/", "sourceName": "Polkadot Wiki", "publishedAt": null, "coins": ["DOT"] },
+  { "id": "static-defi", "title": "What is DeFi? Lending, trading and yield without a bank", "url": "https://ethereum.org/en/defi/", "sourceName": "ethereum.org", "publishedAt": null, "coins": [] },
+  { "id": "static-stablecoins", "title": "Stablecoins: how dollar-pegged tokens keep their value", "url": "https://ethereum.org/en/stablecoins/", "sourceName": "ethereum.org", "publishedAt": null, "coins": [] },
+  { "id": "static-nft", "title": "NFTs explained: ownership of digital items", "url": "https://ethereum.org/en/nft/", "sourceName": "ethereum.org", "publishedAt": null, "coins": [] },
+  { "id": "static-learn", "title": "Crypto basics: guides on wallets, market cap and volatility", "url": "https://www.coingecko.com/learn", "sourceName": "CoinGecko Learn", "publishedAt": null, "coins": [] }
+]

@@ -58,3 +58,19 @@ export const PREFERENCE_OPTIONS = {
   investorTypes: toChoices(investorTypeText),
   contentTypes: toChoices(contentTypeText),
 };
+
+/** Human-readable label for an investor type, e.g. "Day Trader" (used in the AI prompt). */
+export const investorTypeLabel = (type: InvestorType) => investorTypeText[type].label;
+
+/** Human-readable label for a content type, e.g. "Market News". */
+export const contentTypeLabel = (type: ContentType) => contentTypeText[type].label;
+
+/** The catalog entries for CoinGecko ids, in the same order. Unknown ids are skipped. */
+export function coinsFor(coinIds: string[]): Coin[] {
+  return coinIds.flatMap((id) => SUPPORTED_COINS.find((coin) => coin.id === id) ?? []);
+}
+
+/** Ticker symbols for CoinGecko ids, e.g. ["bitcoin"] → ["BTC"]. */
+export function symbolsFor(coinIds: string[]): string[] {
+  return coinsFor(coinIds).map((coin) => coin.symbol);
+}

@@ -13,6 +13,9 @@ export default defineConfig({
       NODE_ENV: 'test',
       DATABASE_URL: TEST_DATABASE_URL,
       JWT_SECRET: 'test-secret-that-is-at-least-32-characters-long',
+      // Fake keys turn on the "live" code paths; every external call is faked in the tests.
+      CRYPTOPANIC_API_KEY: 'test-cryptopanic-key',
+      OPENROUTER_API_KEY: 'test-openrouter-key',
     },
   },
 });
