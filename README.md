@@ -4,7 +4,10 @@ A personalized crypto investor dashboard. Users sign up, answer a short onboardi
 dashboard (market news, coin prices, an AI insight of the day, and a meme), each section with thumbs up/down
 feedback stored for future model improvements.
 
-> **Live app:** _coming soon_ · **Status:** in progress
+> **Live app:** https://cryptovisorai.vercel.app · **API:** https://cryptovisor-api.onrender.com/api/health · **Status:** in progress
+>
+> The API runs on Render's free tier, which sleeps after 15 minutes without traffic.
+> The first request after that can take about 50 seconds while the server wakes up.
 
 ## Stack
 

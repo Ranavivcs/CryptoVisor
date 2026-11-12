@@ -50,3 +50,17 @@ prompted with the investor type, and the content types change the section order.
 A manual signup in the browser showed field errors on an empty submit, then created the user,
 redirected to onboarding, kept the session after a reload, and stored a bcrypt hash in the database
 (no plain-text password). The token cookie is invisible to page JavaScript (httpOnly).
+
+**Deploying the skeleton (Neon → Render → Vercel).** I created the accounts myself; the AI wrote the config
+(`render.yaml`, `client/vercel.json`) and talked me through each dashboard. Things that went wrong, and the fixes:
+- Neon's setup wizard offered extras (auth, storage, an AI gateway). We picked "just Postgres", because we already
+  have our own auth and use OpenRouter for AI.
+- Neon's "add to app" snippet wanted to install its CLI and write secrets into a local file. We skipped it,
+  because the connection string only needs to live in Render's environment settings, not on disk or in chat.
+- I pasted the connection string into Render's *Blueprint Path* field by mistake, so the deploy looked for
+  a file with that name. A screenshot also exposed the password in our chat, so I rotated it in Neon before using it.
+- Vercel served 404s at first because the project had been created from the repo root. Setting the Root Directory to
+  `client` (without `./`) and redeploying fixed it.
+
+Result: https://cryptovisorai.vercel.app is live. `/api/*` on that domain goes through Vercel's rewrite to Render,
+so the auth cookie is first-party, as designed.
