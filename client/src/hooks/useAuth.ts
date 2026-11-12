@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import * as authApi from '../api/auth';
 
 /** Cache key for the signed-in user. Login/logout write to it directly instead of refetching. */
@@ -27,14 +27,24 @@ export function useRegister() {
   });
 }
 
-/** Logout mutation. Clears every cached query so the next user starts clean. */
+/**
+ * Forgets the signed-in user: the route guard redirects to /login, then every other cached
+ * query is dropped so the next user can't see this user's data.
+ *
+ * Order matters. Writing `null` into the existing "me" query is what the mounted guard is
+ * subscribed to; `queryClient.clear()` would delete that query out from under the guard,
+ * which then never sees the sign-out (the bug we had: a dashboard full of "Not signed in").
+ */
+export function signOutLocally(queryClient: QueryClient) {
+  queryClient.setQueryData(ME_KEY, null);
+  queryClient.removeQueries({ predicate: (query) => query.queryKey[0] !== ME_KEY[0] });
+}
+
+/** Logout mutation: clears the cookie on the server, then the session in the client. */
 export function useLogout() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: authApi.logout,
-    onSuccess: () => {
-      queryClient.clear();
-      queryClient.setQueryData(ME_KEY, null);
-    },
+    onSuccess: () => signOutLocally(queryClient),
   });
 }

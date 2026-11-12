@@ -2,16 +2,21 @@ import { vi } from 'vitest';
 
 type Handler = (url: URL, init?: RequestInit) => unknown;
 
-/** A minimal RSS 2.0 feed with the given headlines. */
-export const rssFeed = (titles: string[]) => `<?xml version="1.0"?>
+const FEED_TIME = Date.parse('2026-11-12T10:30:29Z');
+
+/**
+ * A minimal RSS 2.0 feed. Headline `i` links to `${base}/${i}` and was published `i + offsetHours`
+ * hours before 2026-11-12 10:30:29 UTC, so the first headline is the newest.
+ */
+export const rssFeed = (titles: string[], { base = 'https://news.example', offsetHours = 0 } = {}) => `<?xml version="1.0"?>
 <rss version="2.0"><channel><title>Test feed</title>
 ${titles
   .map(
     (title, i) => `<item>
   <title><![CDATA[${title}]]></title>
-  <link><![CDATA[https://news.example/${i}?utm_source=rss]]></link>
-  <guid isPermaLink="true">https://news.example/${i}</guid>
-  <pubDate>Thu, 12 Nov 2026 10:30:29 +0000</pubDate>
+  <link><![CDATA[${base}/${i}?utm_source=rss]]></link>
+  <guid isPermaLink="true">${base}/${i}</guid>
+  <pubDate>${new Date(FEED_TIME - (i + offsetHours) * 3_600_000).toUTCString()}</pubDate>
 </item>`,
   )
   .join('\n')}

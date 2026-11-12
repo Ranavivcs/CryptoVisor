@@ -44,7 +44,10 @@ export interface Meme {
 
 export interface PricesSection {
   source: DataSource;
+  /** The coins the user follows, in their order. */
   coins: CoinMarket[];
+  /** Today's biggest 24h movers in the top 100 that the user doesn't follow. */
+  movers: CoinMarket[];
 }
 export interface NewsSection {
   source: DataSource;

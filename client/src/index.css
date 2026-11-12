@@ -2,8 +2,26 @@
 
 @theme {
   --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  /* The "Saved" hint after a vote: visible for a moment, then fades away. */
+  --animate-fade-out: fade-out 2.5s ease-in forwards;
+
+  @keyframes fade-out {
+    0%,
+    60% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+    }
+  }
 }
 
 body {
   @apply bg-slate-950 text-slate-100 antialiased;
+}
+
+/* Thin, dark scrollbars for the cards that scroll inside themselves. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-slate-700) transparent;
 }

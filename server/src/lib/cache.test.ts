@@ -24,6 +24,14 @@ describe('TtlCache', () => {
     expect(await cache.getOrLoad('k', () => Promise.reject(new Error('API down')))).toBe(2);
   });
 
+  it('shares one load between callers that ask at the same time', async () => {
+    const cache = new TtlCache<number>(1000);
+    const load = vi.fn(() => new Promise<number>((resolve) => setTimeout(() => resolve(7), 10)));
+    const results = await Promise.all([cache.getOrLoad('k', load), cache.getOrLoad('k', load), cache.getOrLoad('k', load)]);
+    expect(results).toEqual([7, 7, 7]);
+    expect(load).toHaveBeenCalledTimes(1);
+  });
+
   it('throws when the loader fails and there is nothing cached', async () => {
     const cache = new TtlCache<number>(1000);
     await expect(cache.getOrLoad('k', () => Promise.reject(new Error('API down')))).rejects.toThrow('API down');

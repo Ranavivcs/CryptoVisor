@@ -26,7 +26,12 @@ interface CoinGeckoMarket {
 
 const BASE_URL = 'https://api.coingecko.com/api/v3';
 const SPARKLINE_POINTS = 42; // one point every 4 hours over 7 days
-// CoinGecko's free tier allows a few calls per minute; one call per coin set per minute is safe.
+const TOP_N = 100;
+/**
+ * One call for the top 100 coins serves every user: it includes all the coins the quiz offers
+ * and is the pool for "top movers". CoinGecko's free tier allows a few calls per minute,
+ * so one call per minute is safe.
+ */
 const cache = new TtlCache<CoinMarket[]>(60_000);
 
 /** Keeps every n-th value so a 168-point series becomes about `points` long. */
@@ -48,26 +53,40 @@ function toCoinMarket(raw: CoinGeckoMarket): CoinMarket {
   };
 }
 
+async function fetchMarkets(params: Record<string, string>): Promise<CoinMarket[]> {
+  const query = new URLSearchParams({ vs_currency: 'usd', sparkline: 'true', price_change_percentage: '24h', ...params });
+  const headers: Record<string, string> = env.COINGECKO_API_KEY ? { 'x-cg-demo-api-key': env.COINGECKO_API_KEY } : {};
+  const raw = await fetchJson<CoinGeckoMarket[]>(`${BASE_URL}/coins/markets?${query}`, { headers });
+  return raw.map(toCoinMarket);
+}
+
+/** The top 100 coins by market cap, cached for a minute. */
+function getTopMarkets(): Promise<CoinMarket[]> {
+  return cache.getOrLoad('top', () => fetchMarkets({ order: 'market_cap_desc', per_page: String(TOP_N), page: '1' }));
+}
+
 /**
- * Current price, 24h change and a 7-day sparkline for the given CoinGecko ids,
- * in the same order as `coinIds`. There's no fake fallback for prices: if CoinGecko is down
- * and nothing is cached, this throws and the card shows an error.
+ * Price, 24h change and 7-day sparkline for the given CoinGecko ids, in the same order as
+ * `coinIds`. Served from the top-100 snapshot; a coin that has dropped out of the top 100
+ * is fetched by id. There's no fake fallback for prices: if CoinGecko is down and nothing is
+ * cached, this throws.
  */
 export async function getCoinMarkets(coinIds: string[]): Promise<CoinMarket[]> {
-  const ids = [...coinIds].sort();
-  const markets = await cache.getOrLoad(ids.join(','), async () => {
-    const params = new URLSearchParams({
-      vs_currency: 'usd',
-      ids: ids.join(','),
-      sparkline: 'true',
-      price_change_percentage: '24h',
-    });
-    const headers: Record<string, string> = env.COINGECKO_API_KEY ? { 'x-cg-demo-api-key': env.COINGECKO_API_KEY } : {};
-    const raw = await fetchJson<CoinGeckoMarket[]>(`${BASE_URL}/coins/markets?${params}`, { headers });
-    return raw.map(toCoinMarket);
-  });
-  const byId = new Map(markets.map((market) => [market.id, market]));
+  const byId = new Map((await getTopMarkets()).map((market) => [market.id, market]));
+  const missing = coinIds.filter((id) => !byId.has(id));
+  if (missing.length > 0) {
+    const extra = await cache.getOrLoad(`ids:${[...missing].sort().join(',')}`, () => fetchMarkets({ ids: missing.join(',') }));
+    for (const market of extra) byId.set(market.id, market);
+  }
   return coinIds.flatMap((id) => byId.get(id) ?? []);
+}
+
+/** The `count` coins with the biggest 24h move (up or down) in the top 100, skipping `excludeIds`. */
+export async function getTopMovers(excludeIds: Set<string>, count: number): Promise<CoinMarket[]> {
+  return (await getTopMarkets())
+    .filter((market) => !excludeIds.has(market.id))
+    .sort((a, b) => Math.abs(b.change24hPct) - Math.abs(a.change24hPct))
+    .slice(0, count);
 }
 
 /** For tests. */

@@ -33,13 +33,17 @@ export function DashboardPage() {
   const order = sectionOrder(preferences?.contentTypes ?? []);
 
   return (
-    <main className="mx-auto max-w-6xl px-4 py-8">
-      <header className="mb-8 flex flex-wrap items-center justify-between gap-4">
+    // Desktop: the page is exactly one screen tall and each card scrolls inside itself.
+    // Phones: a normal scrolling page, one card per row.
+    <main className="mx-auto flex max-w-7xl flex-col px-4 py-6 lg:h-dvh">
+      <header className="mb-6 flex shrink-0 flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold">
-            {greeting()}, {user?.name}
+          <h1 className="text-2xl font-bold text-white sm:text-3xl">
+            {greeting()}, <span className="bg-gradient-to-r from-amber-300 to-orange-400 bg-clip-text text-transparent">{user?.name}</span>
           </h1>
-          <p className="text-slate-400">Your crypto briefing for {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</p>
+          <p className="text-sm text-slate-400">
+            Your crypto briefing for {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+          </p>
         </div>
         <nav className="flex items-center gap-2">
           <Link to="/onboarding" className="rounded-lg px-3 py-2 text-sm text-slate-300 hover:bg-slate-800">
@@ -51,16 +55,19 @@ export function DashboardPage() {
         </nav>
       </header>
 
-      {/* grid-cols-1 = minmax(0, 1fr): without it, a wide meme image stretches the column past the screen. */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      {/*
+        grid-cols-1 = minmax(0, 1fr): without it, a wide meme image stretches the column past the screen.
+        Desktop: the insight is a full-width strip (auto height), the other three share the rest of the screen.
+      */}
+      <div className="grid grid-cols-1 gap-5 lg:min-h-0 lg:flex-1 lg:grid-cols-3 lg:grid-rows-[auto_minmax(0,1fr)]">
         {order.map((name, index) => {
           const Section = SECTIONS[name];
-          return <Section key={name} className={index === 0 ? 'lg:col-span-2' : ''} />;
+          return <Section key={name} className={index === 0 ? 'lg:col-span-3' : 'max-h-[36rem] lg:max-h-none'} />;
         })}
       </div>
 
-      <p className="mt-8 text-center text-xs text-slate-500">
-        Your 👍/👎 are saved to improve future recommendations. Nothing here is financial advice.
+      <p className="mt-4 shrink-0 text-center text-xs text-slate-500">
+        Your votes are saved to improve future recommendations. Nothing here is financial advice.
       </p>
     </main>
   );

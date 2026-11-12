@@ -11,6 +11,8 @@ const CRYPTOPANIC = 'cryptopanic.com';
 const OPENROUTER = 'openrouter.ai';
 const MEME_API = 'meme-api.com';
 const COINTELEGRAPH = 'cointelegraph.com';
+const COINDESK = 'www.coindesk.com';
+const DECRYPT = 'decrypt.co';
 
 const markets = () => [coinGeckoMarket('solana', 'sol', 9.5), coinGeckoMarket('bitcoin', 'btc', -1.2)];
 
@@ -62,6 +64,36 @@ describe('dashboard sections', () => {
       expect(api.calls(COINGECKO)).toBe(1);
     });
 
+    it('adds the 3 biggest 24h movers the user does not follow, up or down', async () => {
+      fakeExternalApis({
+        [COINGECKO]: (url) => {
+          expect(url.searchParams.get('order')).toBe('market_cap_desc');
+          return [
+            ...markets(), // bitcoin and solana: followed, so never "movers"
+            coinGeckoMarket('ethereum', 'eth', 1.0),
+            coinGeckoMarket('pepe', 'pepe', -18.0),
+            coinGeckoMarket('sui', 'sui', 12.5),
+            coinGeckoMarket('tether', 'usdt', 0.0),
+            coinGeckoMarket('aave', 'aave', 4.2),
+          ];
+        },
+      });
+      const agent = await onboardedAgent();
+      const { body } = await agent.get('/api/dashboard/prices').expect(200);
+      expect(body.movers.map((c: { id: string }) => c.id)).toEqual(['pepe', 'sui', 'aave']);
+      expect(body.movers[0]).toMatchObject({ change24hPct: -18, myVote: 0 });
+    });
+
+    it('fetches a followed coin by id if it has dropped out of the top 100', async () => {
+      const api = fakeExternalApis({
+        [COINGECKO]: (url) => (url.searchParams.get('ids') === 'solana' ? [coinGeckoMarket('solana', 'sol', 2)] : [coinGeckoMarket('bitcoin', 'btc', 1)]),
+      });
+      const agent = await onboardedAgent();
+      const { body } = await agent.get('/api/dashboard/prices').expect(200);
+      expect(body.coins.map((c: { id: string }) => c.id)).toEqual(['bitcoin', 'solana']);
+      expect(api.calls(COINGECKO)).toBe(2);
+    });
+
     it('returns an error (not fake prices) when CoinGecko is down and nothing is cached', async () => {
       fakeExternalApis({
         [COINGECKO]: () => {
@@ -110,6 +142,26 @@ describe('dashboard sections', () => {
         ['Solar-powered mining?', []], // "Solar" is not Solana
       ]);
       expect(body.items[1]).toMatchObject({ url: 'https://news.example/2', sourceName: 'Cointelegraph' });
+    });
+
+    it('merges the feeds newest first, takes only coin stories from mixed feeds, and hides downvoted ones', async () => {
+      fakeExternalApis({
+        [CRYPTOPANIC]: () => {
+          throw new Error('paid plan required');
+        },
+        [COINTELEGRAPH]: () => rssFeed(['Bitcoin ETF flows', 'Stablecoin rules'], { base: 'https://ct.example', offsetHours: 2 }),
+        [COINDESK]: () => rssFeed(['Bitcoin hits $80K'], { base: 'https://cd.example' }),
+        [DECRYPT]: () => rssFeed(['Nvidia earnings beat', 'Solana phone ships'], { base: 'https://dc.example' }),
+      });
+      const agent = await onboardedAgent();
+      const titles = async () =>
+        (await agent.get('/api/dashboard/news').expect(200)).body.items.map((item: { title: string }) => item.title);
+
+      // Coin stories by age (0h, 1h, 2h), then general news from crypto-only feeds. No Nvidia.
+      expect(await titles()).toEqual(['Bitcoin hits $80K', 'Solana phone ships', 'Bitcoin ETF flows', 'Stablecoin rules']);
+
+      await agent.put('/api/feedback').send({ section: 'NEWS', itemId: 'rss-https://cd.example/0', vote: -1, content: {} }).expect(200);
+      expect(await titles()).toEqual(['Solana phone ships', 'Bitcoin ETF flows', 'Stablecoin rules']);
     });
 
     it('falls back to static news about the user’s coins when every live source fails', async () => {

@@ -141,6 +141,42 @@ widths showed the cards were 800px wide: a CSS grid column grows to its widest c
 natural width. The fix: `grid-cols-1` (a column allowed to shrink), `min-w-0` on the cards, and hiding the sparkline
 on very narrow screens.
 
+**My review of the live dashboard.** Using it myself, I raised six points. The AI answered each, and I chose what to build:
+- *"Is news sorted by relevance?"* Yes: your coins first, then general news, so a 17-minute-old Ethereum story sits
+  at the bottom for a BTC/SOL user.
+- *"Why are the articles so old?"* The AI measured four free feeds: each carries only about 7-8 Bitcoin stories over
+  1-2 days. So we merged three feeds (decision 28). Five of the eight stories are now under 5 hours old.
+- *"Remove the emojis, rename to Memes."* Done.
+- *"Where do the votes come into play? They just stay there."* A good product point. Now a 👎 on a story collapses it
+  with Undo and hides it for good, and a 👎 on a meme loads a new one (decision 29). I asked whether that could run
+  the user out of content: no, because the feeds refresh and memes fall back to the full pool.
+- *"Should prices show only my coins, or the day's big movers?"* Both, as two lists, from one shared API call
+  (decision 30).
+
+Bugs found while building this: a **cache stampede**, caught by a test (two parallel lookups each called CoinGecko,
+decision 31); an invalid `aria-labelledby` (the ids were built from titles containing spaces); and a blank page in
+development, caused by the dev server serving a stale module after an edit landed in two steps, which a server restart fixed.
+
+**A logout bug I found by clicking around.** Logging out on the live site left me on the dashboard, with every card
+saying "Not signed in" instead of showing the login page. It had been there since day 1, and our guard tests didn't
+cover logout. The cause: `useLogout` called `queryClient.clear()` and *then* set the user to `null`. `clear()` deletes
+the cached "me" query that the mounted route guard is subscribed to, so the guard never saw the sign-out, while the four
+cards refetched without a cookie. The fix:
+- set the user to `null` first (the guard redirects), then remove every other cached query;
+- a global safety net: any 401 from any request signs the user out locally, so an expired session behaves the same way.
+I asked for a test that reproduces it. To prove the test isn't passing by accident, the AI temporarily restored the old
+order: both new tests failed, exactly like my screenshot. Then it put the fix back.
+
+**Design pass from my own testing.** A new account showed a broken meme image, and "Another one" fixed it. The AI
+explained that the server had picked a Reddit post whose image no longer loads, so the client now loads another meme on an
+image error, capped at 3 tries (decision 37, with a test). I also asked for:
+- distinct titles: accent colour and a highlighted name in the greeting;
+- green and red votes: SVG thumbs, since emoji can't be recoloured;
+- the whole dashboard on one screen, instead of scrolling down to the meme.
+The one-screen layout showed a new problem at laptop size: the prices column became too narrow, and coin names were cut
+to "B…". The fix was a CSS container query, so the sparkline hides based on the card's width rather than the screen's
+(decisions 34-36). Checked at 1440×900 (no page scroll) and at 375px (normal scroll, no sideways overflow).
+
 **CoinGecko key?** We never needed one. The public `/coins/markets` endpoint works without a key, and with a 60-second
 cache we make at most one call per coin set per minute. The code accepts an optional free "demo" key
 (`COINGECKO_API_KEY`) as insurance against rate limits on Render's shared IP addresses.

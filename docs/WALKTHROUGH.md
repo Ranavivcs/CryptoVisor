@@ -28,13 +28,13 @@ One line per file: what it does. Read top to bottom to follow a request from the
 | `src/modules/preferences/preferences.service.ts` | Read and upsert the user's Preferences row |
 | `src/modules/preferences/preferences.controller.ts` / `.routes.ts` | `GET /options`, `GET /`, `PUT /`, all behind `requireAuth` |
 | `src/modules/preferences/preferences.test.ts` | API tests: auth required, options, save completes onboarding, overwrite, validation |
-| `src/lib/cache.ts` | `TtlCache`: cache-aside with a TTL, which serves the stale value if a reload fails |
+| `src/lib/cache.ts` | `TtlCache`: cache-aside with a TTL; concurrent misses share one load; serves the stale value if a reload fails |
 | `src/lib/http.ts` | `fetchJson` / `fetchText`: external HTTP calls with a timeout; throw on non-2xx |
 | `src/providers/types.ts` | `Sourced<T>` = `{ source: 'live' \| 'fallback', data }` |
-| `src/providers/prices.coingecko.ts` | CoinGecko markets → our `CoinMarket` type, sparkline thinned to 42 points, cached 60 s |
+| `src/providers/prices.coingecko.ts` | One cached top-100 CoinGecko call feeds `getCoinMarkets` (the user's coins) and `getTopMovers`; sparkline thinned to 42 points |
 | `src/providers/news.ts` | News orchestrator: tries CryptoPanic (if keyed) → RSS → `data/news.json`; tags and ranks stories by the user's coins |
 | `src/providers/news.cryptopanic.ts` | CryptoPanic adapter: posts → `NewsItem` (needs a paid key) |
-| `src/providers/news.rss.ts` | Cointelegraph RSS adapter: parses the XML with `fast-xml-parser`, strips tracking parameters |
+| `src/providers/news.rss.ts` | RSS adapter: the feed list (Cointelegraph, CoinDesk, Decrypt), XML parsing with `fast-xml-parser`, tracking parameters stripped |
 | `src/providers/insight.openrouter.ts` | Builds the prompt, calls OpenRouter (with model fallbacks), or returns the rule-based fallback |
 | `src/providers/memes.ts` | Reddit memes (NSFW filtered), random pick that skips downvoted ones; falls back to `data/memes.json` |
 | `src/modules/dashboard/dashboard.service.ts` | One function per section: load preferences → call provider → attach `myVote`. Stores the daily insight |
@@ -53,7 +53,8 @@ One line per file: what it does. Read top to bottom to follow a request from the
 | `src/routes/guards.tsx` | `RequireAuth` (guest → /login; no preferences → /onboarding) and `GuestOnly` |
 | `src/api/client.ts` | `apiFetch`: the only place that calls `fetch`; throws `ApiError` with field errors |
 | `src/api/auth.ts` | Typed functions for the auth endpoints |
-| `src/hooks/useAuth.ts` | `useMe` (the cached current user), plus login/register/logout mutations that update that cache |
+| `src/hooks/useAuth.ts` | `useMe` (the cached current user), login/register/logout mutations that update that cache, and `signOutLocally` |
+| `src/lib/queryClient.ts` | The React Query client: no retries on 401, and any 401 signs the user out (sends them to /login) |
 | `src/lib/errors.ts` | Turns an API error into field messages plus a form message |
 | `src/components/AuthLayout.tsx` | Shared card for the login and signup pages |
 | `src/components/ui/Button.tsx`, `TextField.tsx` | Reusable UI building blocks |
@@ -65,10 +66,10 @@ One line per file: what it does. Read top to bottom to follow a request from the
 | `src/lib/toggle.ts` | Add or remove a value from a list (used for the multi-select questions) |
 | `src/api/dashboard.ts` | Types for the 4 sections, plus `sendVote` (PUT for a vote, DELETE to clear it) |
 | `src/hooks/useDashboard.ts` | One query hook per section, each with its own refresh policy |
-| `src/hooks/useVote.ts` | Optimistic thumb state for one item, rolled back on error |
+| `src/hooks/useVote.ts` | Optimistic thumb state for one item, rolled back on error; `onSaved` lets the row react (collapse the story, load a new meme) |
 | `src/components/dashboard/SectionCard.tsx` | Shared card shell: title, "Sample" badge, loading skeleton, error and retry. Takes the query and a render function |
 | `src/components/dashboard/{Insight,Prices,News,Meme}Section.tsx` | The four sections; each renders its data inside a `SectionCard` |
-| `src/components/dashboard/VoteButtons.tsx` | 👍/👎 for one item |
+| `src/components/dashboard/VoteButtons.tsx` | 👍/👎 plus a fading "Saved" hint; presentational, fed by `useVote` |
 | `src/components/dashboard/Sparkline.tsx` | 7-day price line as one SVG polyline |
 | `src/lib/sectionOrder.ts` | Content preferences → order of the sections |
 | `src/lib/format.ts` | Money, percent and "3 hours ago" formatting |

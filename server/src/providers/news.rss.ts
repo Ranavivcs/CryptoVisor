@@ -2,8 +2,25 @@ import { XMLParser } from 'fast-xml-parser';
 import { fetchText } from '../lib/http.js';
 import type { NewsItem } from './news.js';
 
-/** A free, keyless, crypto-only feed. RSS exists to let other sites show headlines and links. */
-export const RSS_FEED = { url: 'https://cointelegraph.com/rss', sourceName: 'Cointelegraph' };
+export interface RssFeed {
+  url: string;
+  sourceName: string;
+  /**
+   * true: every story is crypto news, so untagged stories can be shown as general market news.
+   * false: the feed mixes in other topics, so only stories about the user's coins are used.
+   */
+  cryptoOnly: boolean;
+}
+
+/**
+ * Free, keyless feeds. Each carries only ~7-8 Bitcoin stories over 1-2 days, so we merge
+ * several to keep the news card fresh. RSS exists to let other sites show headlines and links.
+ */
+export const RSS_FEEDS: RssFeed[] = [
+  { url: 'https://cointelegraph.com/rss', sourceName: 'Cointelegraph', cryptoOnly: true },
+  { url: 'https://www.coindesk.com/arc/outboundfeeds/rss/', sourceName: 'CoinDesk', cryptoOnly: true },
+  { url: 'https://decrypt.co/feed', sourceName: 'Decrypt', cryptoOnly: false },
+];
 
 interface RssItem {
   title?: string;
@@ -39,7 +56,7 @@ export function parseRss(xml: string, sourceName: string): NewsItem[] {
   });
 }
 
-/** Latest headlines from the RSS feed (all coins). */
-export async function fetchRssNews(): Promise<NewsItem[]> {
-  return parseRss(await fetchText(RSS_FEED.url), RSS_FEED.sourceName);
+/** Latest headlines from one feed. */
+export async function fetchFeed(feed: RssFeed): Promise<NewsItem[]> {
+  return parseRss(await fetchText(feed.url), feed.sourceName);
 }

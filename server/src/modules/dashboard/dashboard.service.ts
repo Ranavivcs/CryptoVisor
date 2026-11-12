@@ -4,7 +4,7 @@ import { HttpError } from '../../lib/http-error.js';
 import { generateInsight } from '../../providers/insight.openrouter.js';
 import { getMeme } from '../../providers/memes.js';
 import { getNews } from '../../providers/news.js';
-import { getCoinMarkets, type CoinMarket } from '../../providers/prices.coingecko.js';
+import { getCoinMarkets, getTopMovers, type CoinMarket } from '../../providers/prices.coingecko.js';
 import type { DataSource } from '../../providers/types.js';
 import { getDownvotedIds, getMyVotes, type MyVote } from '../feedback/feedback.service.js';
 import { coinsFor, contentTypeLabel, investorTypeLabel, symbolsFor } from '../preferences/preferences.catalog.js';
@@ -30,21 +30,27 @@ export function todayUtc(now = new Date()): Date {
   return new Date(now.toISOString().slice(0, 10));
 }
 
-/** Prices for the user's coins. Throws (→ error card) if CoinGecko is down and nothing is cached. */
+const TOP_MOVERS = 3;
+
+/**
+ * The user's coins, plus today's biggest movers among the top 100 they don't follow.
+ * Throws (→ error card) if CoinGecko is down and nothing is cached.
+ */
 export async function getPricesSection(userId: string) {
   const { assets } = await requirePreferences(userId);
-  const markets = await getCoinMarkets(assets).catch((err: Error) => {
+  const [mine, movers] = await Promise.all([getCoinMarkets(assets), getTopMovers(new Set(assets), TOP_MOVERS)]).catch((err: Error) => {
     console.warn('Prices: CoinGecko failed and nothing is cached.', err.message);
     throw new HttpError(503, 'Live prices are unavailable right now. Try again in a minute.');
   });
-  const coins = await withVotes(userId, 'PRICES', markets);
-  return { source: 'live' as DataSource, coins };
+  // One vote query for both lists.
+  const voted = await withVotes(userId, 'PRICES', [...mine, ...movers]);
+  return { source: 'live' as DataSource, coins: voted.slice(0, mine.length), movers: voted.slice(mine.length) };
 }
 
-/** News about the user's coins (live or fallback). */
+/** News about the user's coins (live or fallback), without stories they voted down. */
 export async function getNewsSection(userId: string) {
   const { assets } = await requirePreferences(userId);
-  const news = await getNews(coinsFor(assets));
+  const news = await getNews(coinsFor(assets), await getDownvotedIds(userId, 'NEWS'));
   return { source: news.source, items: await withVotes(userId, 'NEWS', news.data) };
 }
 
