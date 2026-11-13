@@ -188,3 +188,37 @@ I also asked where to change the key "in the code": nowhere, by design. Keys liv
 **CoinGecko key?** We never needed one. The public `/coins/markets` endpoint works without a key, and with a 60-second
 cache we make at most one call per coin set per minute. The code accepts an optional free "demo" key
 (`COINGECKO_API_KEY`) as insurance against rate limits on Render's shared IP addresses.
+
+## Day 3 (Friday): polish from my own review, and the bonus proposal
+
+**Four points I raised after using the app:**
+- *"Edit preferences should show what I already chose."* The quiz now waits for the saved answers and starts from them.
+  The AI suggested mounting the quiz only after the answers load, so they seed its state once and no effect is needed
+  to keep props and state in sync (decision 40).
+- *"Back doesn't work after pressing Edit."* On the first step it was always disabled, so there was no way back to
+  the dashboard. When editing, it's now "Back to dashboard". Saving also refreshes every section, which fixed a second
+  problem the AI pointed out: news kept showing the old coins for up to 5 minutes.
+- *"The market works certain hours. What happens when the day switches?"* Crypto trades 24/7, so there are no market
+  hours; "24h change" is a rolling window, so "Top movers today" became "Biggest moves (24h)". But my question exposed
+  a real bug: the server keyed the insight on the **UTC** day while the header showed my **local** date, so in Israel
+  they disagreed between 00:00 and 02:00. Now the client sends its time zone, the server computes the date (so a client
+  can't request arbitrary days and cause extra LLM calls), and a `useToday` hook flips the date and the insight at local
+  midnight (decision 38, with a test for 23:30 UTC = 01:30 in Israel).
+- *"Show when the coins were last updated."* Each price shows CoinGecko's own `last_updated` time (decision 39).
+
+**Verified:** 40 server and 15 client tests; in the browser, the quiz opened with my coins and investor type already
+selected, Back returned to the dashboard, and the insight request carried `tz=Asia/Jerusalem`.
+
+**The bonus proposal** ([FEEDBACK_TRAINING.md](FEEDBACK_TRAINING.md)) is grounded in what the app already stores: each
+vote's snapshot (context, content, label) and each insight's prompt and model. While writing it, the AI flagged two
+honest gaps rather than overclaiming: the vote snapshot is sent by the browser (production would rebuild it on the
+server), and while the database cascades deletes, the app has no "delete my account" button yet.
+
+**Read-only database access for the reviewers.** Sending the app's own connection string would give reviewers full
+write access and expose the app's password, so we created a `reviewer` role (least privilege): `SELECT` on every table,
+default privileges so future tables are readable too, and column-level grants on `User` that leave out `passwordHash`.
+Neon checks password strength before creating a role, so a weak or placeholder password is rejected. Logged in as
+`reviewer`, I checked all three rules: reading votes works, `SELECT "passwordHash"` and an `INSERT` are both denied.
+Two lessons on secrets: my first password was visible in a screenshot I shared, so we reset it, and the final one was
+generated into a PowerShell variable and copied to the clipboard, so it never appeared on screen. The connection string
+goes in the submission email only, never in the repo. The README's Database section lists the tables and example queries.

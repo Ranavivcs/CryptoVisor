@@ -66,12 +66,61 @@ Every dashboard response has `source: "live" | "fallback"`, and `myVote` is `1`,
 | Section | Live source | When it's unavailable |
 |---|---|---|
 | Coin Prices | CoinGecko `/coins/markets` (no key needed), cached for 60 s | The last cached prices; otherwise an error card (we never show made-up prices) |
-| Market News | Cointelegraph RSS (free, no key), tagged by coin, cached for 10 min. CryptoPanic is tried first if `CRYPTOPANIC_API_KEY` is set (its API now requires a paid plan) | Built-in explainer links for the user's coins, marked "Sample" |
+| Market News | Three free RSS feeds merged (Cointelegraph, CoinDesk, Decrypt), tagged by coin, cached for 10 min. CryptoPanic is tried first if `CRYPTOPANIC_API_KEY` is set (its API now requires a paid plan) | Built-in explainer links for the user's coins, marked "Sample" |
 | AI Insight | OpenRouter free models (`OPENROUTER_API_KEY`), tried in order from `OPENROUTER_MODELS`, reasoning off; stored once per day | A rule-based insight naming the biggest mover in the user's watchlist |
 | Meme | r/cryptocurrencymemes via meme-api.com (NSFW and spoiler posts filtered out) | Built-in text memes |
+
+## Database
+
+Postgres on Neon (Frankfurt), managed with Prisma migrations (`server/prisma/schema.prisma`).
+Reviewers get a **read-only** login (the `reviewer` role, sent separately, never in this repo). It can `SELECT`
+every table but can't write, and it can't read `User.passwordHash`, so `SELECT *` on `"User"` fails: name the columns.
+
+| Table | One row per | What it's for |
+|---|---|---|
+| `User` | account | Email, name, bcrypt password hash |
+| `Preferences` | user (after onboarding) | The quiz answers: coins (`assets`), investor type, content types |
+| `DailyInsight` | user per day (in their time zone) | The AI insight, the model that wrote it, and the exact prompt sent |
+| `Feedback` | user per voted item | `vote` (+1 / -1) and `contentSnapshot`: what the user saw plus their preferences at that moment |
+
+Table and column names are camelCase, so quote them in SQL (`"Feedback"`, `"itemId"`).
+
+```sql
+-- Votes per section: how many up and down.
+SELECT section,
+       count(*) FILTER (WHERE vote = 1)  AS up,
+       count(*) FILTER (WHERE vote = -1) AS down
+FROM "Feedback"
+GROUP BY section
+ORDER BY section;
+
+-- The 👍 ratio of AI insights, per model.
+SELECT d.model,
+       count(*) AS votes,
+       round(avg((f.vote = 1)::int), 2) AS up_ratio
+FROM "Feedback" f
+JOIN "DailyInsight" d ON d.id = f."itemId"
+WHERE f.section = 'INSIGHT'
+GROUP BY d.model;
+
+-- The latest votes, with what was shown and who it was shown to.
+SELECT section, vote, "updatedAt",
+       "contentSnapshot"->'item'                         AS item,
+       "contentSnapshot"->'preferences'->>'investorType' AS investor_type
+FROM "Feedback"
+ORDER BY "updatedAt" DESC
+LIMIT 10;
+
+-- The latest insights and the prompts that produced them.
+SELECT day, model, text, prompt
+FROM "DailyInsight"
+ORDER BY "createdAt" DESC
+LIMIT 5;
+```
 
 ## Docs
 
 - [Decision log](docs/DECISIONS.md)
 - [Code walkthrough](docs/WALKTHROUGH.md)
 - [How I worked with AI](docs/PROCESS.md)
+- [Bonus: how the 👍/👎 feedback would train or improve the models](docs/FEEDBACK_TRAINING.md)
