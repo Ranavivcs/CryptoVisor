@@ -22,6 +22,8 @@ export function usePreferences() {
 /**
  * Saves the quiz answers. On success it updates the cache in place: the saved preferences,
  * and `hasPreferences` on the current user, so the route guard lets them into the dashboard.
+ * It also marks every dashboard section stale, so changed coins show up right away
+ * (news is otherwise cached for 5 minutes).
  */
 export function useSavePreferences() {
   const queryClient = useQueryClient();
@@ -30,6 +32,7 @@ export function useSavePreferences() {
     onSuccess: (preferences) => {
       queryClient.setQueryData(PREFERENCES_KEY, preferences);
       queryClient.setQueryData<User | null>(ME_KEY, (user) => (user ? { ...user, hasPreferences: true } : user));
+      void queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
   });
 }

@@ -9,6 +9,8 @@ export interface CoinMarket {
   image: string;
   priceUsd: number;
   change24hPct: number;
+  /** When CoinGecko last updated this price (ISO time). Shown on the card so users know how fresh it is. */
+  lastUpdated: string;
   /** About 7 days of hourly prices, thinned to keep the payload small. */
   sparkline: number[];
 }
@@ -21,6 +23,7 @@ interface CoinGeckoMarket {
   image: string;
   current_price: number;
   price_change_percentage_24h: number | null;
+  last_updated: string;
   sparkline_in_7d?: { price: number[] };
 }
 
@@ -49,6 +52,7 @@ function toCoinMarket(raw: CoinGeckoMarket): CoinMarket {
     image: raw.image,
     priceUsd: raw.current_price,
     change24hPct: raw.price_change_percentage_24h ?? 0,
+    lastUpdated: raw.last_updated,
     sparkline: thin(raw.sparkline_in_7d?.price ?? [], SPARKLINE_POINTS),
   };
 }

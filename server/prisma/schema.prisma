@@ -56,7 +56,7 @@ model Preferences {
 model DailyInsight {
   id        String   @id @default(cuid())
   userId    String
-  /// Calendar day in UTC, stored as a date with no time part.
+  /// Calendar day in the user's time zone (sent by the client), stored as a date with no time part.
   day       DateTime @db.Date
   text      String
   /// Which model produced the text ("fallback" when the LLM call failed).

@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import * as dashboardApi from '../api/dashboard';
+import { userTimeZone, useToday } from './useToday';
 
 const ONE_MINUTE = 60_000;
 
@@ -16,9 +17,17 @@ export function useNews() {
   return useQuery({ queryKey: ['dashboard', 'news'], queryFn: dashboardApi.fetchNews, staleTime: 5 * ONE_MINUTE });
 }
 
-/** The insight changes once a day, so there's no reason to refetch it while the app is open. */
+/**
+ * The insight changes once a day, so it's never refetched within a day. The date is part of
+ * the query key: at local midnight the key changes and the new day's insight loads by itself.
+ */
 export function useInsight() {
-  return useQuery({ queryKey: ['dashboard', 'insight'], queryFn: dashboardApi.fetchInsight, staleTime: Infinity });
+  const today = useToday();
+  return useQuery({
+    queryKey: ['dashboard', 'insight', today],
+    queryFn: () => dashboardApi.fetchInsight(userTimeZone()),
+    staleTime: Infinity,
+  });
 }
 
 /** The meme is never "fresh": each dashboard visit (and the "Another one" button) gets a new one. */

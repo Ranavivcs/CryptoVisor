@@ -54,7 +54,7 @@ All responses are JSON. Errors look like `{ "error": string, "details"?: { field
 | PUT | `/api/preferences` | ✓ | `{ assets: string[], investorType, contentTypes: string[] }` → `{ preferences }`. Creates or replaces |
 | GET | `/api/dashboard/prices` | ✓ | `{ source, coins: [{ id, symbol, name, image, priceUsd, change24hPct, sparkline, myVote }] }`. `503` if CoinGecko is down and nothing is cached |
 | GET | `/api/dashboard/news` | ✓ | `{ source, items: [{ id, title, url, sourceName, publishedAt, coins, myVote }] }` |
-| GET | `/api/dashboard/insight` | ✓ | `{ source, insight: { id, text, model, myVote } }`. Generated once per user per UTC day |
+| GET | `/api/dashboard/insight` | ✓ | `{ source, insight: { id, text, model, myVote } }`. Generated once per user per day; `?tz=Area/City` sets which day (default UTC) |
 | GET | `/api/dashboard/meme` | ✓ | `{ source, meme: { id, title, imageUrl, text, postUrl, myVote } }`. Random on each call |
 | PUT | `/api/feedback` | ✓ | `{ section: NEWS\|PRICES\|INSIGHT\|MEME, itemId, vote: 1\|-1, content }`. Creates or changes the vote |
 | DELETE | `/api/feedback/:section/:itemId` | ✓ | Removes the vote. `204` |

@@ -17,5 +17,9 @@ const section = (load: (userId: string) => Promise<unknown>) => async (req: Requ
 
 dashboardRouter.get('/prices', section(dashboard.getPricesSection));
 dashboardRouter.get('/news', section(dashboard.getNewsSection));
-dashboardRouter.get('/insight', section(dashboard.getInsightSection));
+// ?tz=Asia/Jerusalem decides which calendar day "today" is. An unknown or missing zone falls back to UTC.
+dashboardRouter.get('/insight', async (req, res) => {
+  const timeZone = dashboard.isTimeZone(req.query.tz) ? req.query.tz : 'UTC';
+  res.json(await dashboard.getInsightSection(currentUserId(req), timeZone));
+});
 dashboardRouter.get('/meme', section(dashboard.getMemeSection));

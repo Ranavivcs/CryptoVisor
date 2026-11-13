@@ -177,6 +177,14 @@ The one-screen layout showed a new problem at laptop size: the prices column bec
 to "B…". The fix was a CSS container query, so the sparkline hides based on the card's width rather than the screen's
 (decisions 34-36). Checked at 1440×900 (no page scroll) and at 375px (normal scroll, no sideways overflow).
 
+**Live insight still showed "Sample" after the push.** Everything else on the live site was new, so the server code was
+deployed, which narrowed it to configuration. The AI listed what each possible log line would mean (a 401 means a
+bad or missing key, a 429 means rate-limited, no line at all means no key). The cause was that Render still had the
+**old, revoked** OpenRouter key: I had rotated it locally but not updated Render. After I updated Render's environment,
+the live insight came from Nemotron. Lesson: rotating a secret means updating *every* place it lives.
+I also asked where to change the key "in the code": nowhere, by design. Keys live only in environment variables
+(Render's dashboard, and the gitignored `server/.env`), and `config/env.ts` reads them at startup.
+
 **CoinGecko key?** We never needed one. The public `/coins/markets` endpoint works without a key, and with a 60-second
 cache we make at most one call per coin set per minute. The code accepts an optional free "demo" key
 (`COINGECKO_API_KEY`) as insurance against rate limits on Render's shared IP addresses.

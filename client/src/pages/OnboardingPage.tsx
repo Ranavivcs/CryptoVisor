@@ -5,7 +5,7 @@ import { ChoiceCard } from '../components/onboarding/ChoiceCard';
 import { StepProgress } from '../components/onboarding/StepProgress';
 import { Button } from '../components/ui/Button';
 import { useMe } from '../hooks/useAuth';
-import { usePreferenceOptions, useSavePreferences } from '../hooks/usePreferences';
+import { usePreferenceOptions, usePreferences, useSavePreferences } from '../hooks/usePreferences';
 import { formErrors } from '../lib/errors';
 import { toggle } from '../lib/toggle';
 
@@ -73,21 +73,67 @@ const STEPS: Step[] = [
   },
 ];
 
+const EMPTY_ANSWERS: Answers = { assets: [], investorType: null, contentTypes: [] };
+
 /**
- * The onboarding quiz, shown once after the first login. Answers stay in this component's
- * state until the last step, then one PUT saves them all.
+ * The onboarding quiz: shown once after the first login, and again from "Edit preferences".
+ * It waits for the saved answers before rendering the steps, so editing starts from what the
+ * user already chose (a first-timer has none and starts empty).
  */
 export function OnboardingPage() {
   const { data: user } = useMe();
   const optionsQuery = usePreferenceOptions();
+  const preferencesQuery = usePreferences();
+  const isEditing = Boolean(user?.hasPreferences);
+
+  return (
+    <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-8 px-4 py-12">
+      <header className="space-y-1">
+        <h1 className="text-2xl font-bold">{isEditing ? 'Edit your preferences' : <>Hi {user?.name}, let&apos;s tune your dashboard</>}</h1>
+        <p className="text-slate-400">
+          {isEditing ? 'Your current answers are already selected. Change what you like.' : 'Three quick questions. You can change your answers later.'}
+        </p>
+      </header>
+
+      {(optionsQuery.isPending || preferencesQuery.isPending) && <p className="text-slate-400">Loading options…</p>}
+      {(optionsQuery.isError || preferencesQuery.isError) && (
+        <p className="text-rose-300">Couldn&apos;t load the questions. Please refresh the page.</p>
+      )}
+      {optionsQuery.data && preferencesQuery.isSuccess && (
+        <Quiz options={optionsQuery.data} initialAnswers={preferencesQuery.data ?? EMPTY_ANSWERS} isEditing={isEditing} />
+      )}
+    </main>
+  );
+}
+
+interface QuizProps {
+  options: PreferenceOptions;
+  /** Read once, on mount. The quiz only mounts after the saved answers have loaded, so no syncing is needed. */
+  initialAnswers: Answers;
+  /** Opened from "Edit preferences": Back on the first step returns to the dashboard instead of being disabled. */
+  isEditing: boolean;
+}
+
+/** The steps. Answers stay in this component's state until the last step, then one PUT saves them all. */
+function Quiz({ options, initialAnswers, isEditing }: QuizProps) {
   const saveMutation = useSavePreferences();
   const navigate = useNavigate();
   const [stepIndex, setStepIndex] = useState(0);
-  const [answers, setAnswers] = useState<Answers>({ assets: [], investorType: null, contentTypes: [] });
+  const [answers, setAnswers] = useState<Answers>(() => ({
+    assets: initialAnswers.assets,
+    investorType: initialAnswers.investorType,
+    contentTypes: initialAnswers.contentTypes,
+  }));
 
   const step = STEPS[stepIndex];
+  const isFirstStep = stepIndex === 0;
   const isLastStep = stepIndex === STEPS.length - 1;
   const saveError = formErrors(saveMutation.error).form;
+
+  function back() {
+    if (isFirstStep) navigate('/');
+    else setStepIndex(stepIndex - 1);
+  }
 
   function next() {
     if (!isLastStep) {
@@ -102,12 +148,7 @@ export function OnboardingPage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-8 px-4 py-12">
-      <header className="space-y-1">
-        <h1 className="text-2xl font-bold">Hi {user?.name}, let&apos;s tune your dashboard</h1>
-        <p className="text-slate-400">Three quick questions. You can change your answers later.</p>
-      </header>
-
+    <>
       <StepProgress current={stepIndex} total={STEPS.length} />
 
       <section aria-labelledby="step-title" className="space-y-4">
@@ -117,12 +158,7 @@ export function OnboardingPage() {
           </h2>
           <p className="text-sm text-slate-400">{step.hint}</p>
         </div>
-
-        {optionsQuery.isPending && <p className="text-slate-400">Loading options…</p>}
-        {optionsQuery.isError && <p className="text-rose-300">Couldn&apos;t load the questions. Please refresh the page.</p>}
-        {optionsQuery.data && (
-          <div className="grid gap-3 sm:grid-cols-2">{step.render(optionsQuery.data, answers, setAnswers)}</div>
-        )}
+        <div className="grid gap-3 sm:grid-cols-2">{step.render(options, answers, setAnswers)}</div>
       </section>
 
       {saveError && (
@@ -132,13 +168,13 @@ export function OnboardingPage() {
       )}
 
       <footer className="flex justify-between">
-        <Button variant="ghost" onClick={() => setStepIndex(stepIndex - 1)} disabled={stepIndex === 0}>
-          Back
+        <Button variant="ghost" onClick={back} disabled={isFirstStep && !isEditing}>
+          {isFirstStep && isEditing ? 'Back to dashboard' : 'Back'}
         </Button>
         <Button onClick={next} disabled={!step.isAnswered(answers)} loading={saveMutation.isPending}>
-          {isLastStep ? 'Show my dashboard' : 'Next'}
+          {isLastStep ? (isEditing ? 'Save changes' : 'Show my dashboard') : 'Next'}
         </Button>
       </footer>
-    </main>
+    </>
   );
 }

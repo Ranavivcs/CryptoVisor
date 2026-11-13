@@ -60,12 +60,13 @@ One line per file: what it does. Read top to bottom to follow a request from the
 | `src/components/ui/Button.tsx`, `TextField.tsx` | Reusable UI building blocks |
 | `src/api/preferences.ts` | Types and functions for the preferences endpoints |
 | `src/hooks/usePreferences.ts` | `usePreferenceOptions`, `usePreferences`, and `useSavePreferences`, which also flips `hasPreferences` in the cached user so the guard lets them through |
-| `src/pages/OnboardingPage.tsx` | The 3-step quiz, driven by a `STEPS` array; one PUT on the last step |
+| `src/pages/OnboardingPage.tsx` | The 3-step quiz, driven by a `STEPS` array; one PUT on the last step. When opened from "Edit preferences" it waits for the saved answers and starts from them, and Back on step 1 returns to the dashboard |
 | `src/components/onboarding/ChoiceCard.tsx` | A selectable answer card (`aria-pressed` toggle button) |
 | `src/components/onboarding/StepProgress.tsx` | "Step 2 of 3" and the progress bar |
 | `src/lib/toggle.ts` | Add or remove a value from a list (used for the multi-select questions) |
 | `src/api/dashboard.ts` | Types for the 4 sections, plus `sendVote` (PUT for a vote, DELETE to clear it) |
 | `src/hooks/useDashboard.ts` | One query hook per section, each with its own refresh policy |
+| `src/hooks/useToday.ts` | `useToday()`: the local date, updated by one timer at midnight; plus the user's time zone for the insight request (decision 38) |
 | `src/hooks/useVote.ts` | Optimistic thumb state for one item, rolled back on error; `onSaved` lets the row react (collapse the story, load a new meme) |
 | `src/components/dashboard/SectionCard.tsx` | Shared card shell: title, "Sample" badge, loading skeleton, error and retry. Takes the query and a render function |
 | `src/components/dashboard/{Insight,Prices,News,Meme}Section.tsx` | The four sections; each renders its data inside a `SectionCard` |

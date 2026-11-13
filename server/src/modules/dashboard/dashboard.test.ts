@@ -5,6 +5,7 @@ import { clearNewsCaches } from '../../providers/news.js';
 import { pricesCache } from '../../providers/prices.coingecko.js';
 import { coinGeckoMarket, fakeExternalApis, rssFeed } from '../../test/fake-apis.js';
 import { resetDb, signedInAgent } from '../../test/helpers.js';
+import { isTimeZone, todayIn } from './dashboard.service.js';
 
 const COINGECKO = 'api.coingecko.com';
 const CRYPTOPANIC = 'cryptopanic.com';
@@ -56,7 +57,7 @@ describe('dashboard sections', () => {
 
       const { body } = await agent.get('/api/dashboard/prices').expect(200);
       expect(body.coins.map((c: { id: string }) => c.id)).toEqual(['bitcoin', 'solana']);
-      expect(body.coins[0]).toMatchObject({ symbol: 'BTC', change24hPct: -1.2, myVote: 0 });
+      expect(body.coins[0]).toMatchObject({ symbol: 'BTC', change24hPct: -1.2, lastUpdated: '2026-11-12T10:30:00.000Z', myVote: 0 });
       expect(body.coins[1].myVote).toBe(1);
       expect(body.coins[0].sparkline).toHaveLength(42);
 
@@ -220,6 +221,29 @@ describe('dashboard sections', () => {
       expect(body.insight.text).toContain('Solana is the biggest mover');
       expect(body.insight.text).toContain('Day Trader');
       expect(await prisma.dailyInsight.count()).toBe(0);
+    });
+
+    it("keys the day on the user's time zone, so the insight switches at their midnight", () => {
+      // 23:30 UTC on Nov 12 is already 01:30 on Nov 13 in Israel (UTC+2).
+      const lateEvening = new Date('2026-11-12T23:30:00Z');
+      expect(todayIn('UTC', lateEvening).toISOString()).toBe('2026-11-12T00:00:00.000Z');
+      expect(todayIn('Asia/Jerusalem', lateEvening).toISOString()).toBe('2026-11-13T00:00:00.000Z');
+      expect(todayIn('America/New_York', lateEvening).toISOString()).toBe('2026-11-12T00:00:00.000Z');
+    });
+
+    it('ignores an unknown time zone and uses UTC', async () => {
+      expect(isTimeZone('Asia/Jerusalem')).toBe(true);
+      expect(isTimeZone('Mars/Olympus')).toBe(false);
+      expect(isTimeZone(['UTC'])).toBe(false);
+
+      fakeExternalApis({
+        [COINGECKO]: () => markets(),
+        [OPENROUTER]: () => ({ model: 'm:free', choices: [{ message: { content: 'Hi.' } }] }),
+      });
+      const agent = await onboardedAgent();
+      await agent.get('/api/dashboard/insight?tz=Mars/Olympus').expect(200);
+      const stored = await prisma.dailyInsight.findFirstOrThrow();
+      expect(stored.day.toISOString()).toBe(todayIn('UTC').toISOString());
     });
   });
 

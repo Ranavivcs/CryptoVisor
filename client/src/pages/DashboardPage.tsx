@@ -7,6 +7,8 @@ import { PricesSection } from '../components/dashboard/PricesSection';
 import { Button } from '../components/ui/Button';
 import { useLogout, useMe } from '../hooks/useAuth';
 import { usePreferences } from '../hooks/usePreferences';
+import { useToday } from '../hooks/useToday';
+import { formatDay } from '../lib/format';
 import { sectionOrder, type DashboardSection } from '../lib/sectionOrder';
 
 const SECTIONS: Record<DashboardSection, ComponentType<{ className?: string }>> = {
@@ -30,6 +32,8 @@ export function DashboardPage() {
   const { data: user } = useMe();
   const { data: preferences } = usePreferences();
   const logoutMutation = useLogout();
+  // The same date the insight is keyed on, so the date line and the insight switch together at midnight.
+  const today = useToday();
   const order = sectionOrder(preferences?.contentTypes ?? []);
 
   return (
@@ -42,7 +46,7 @@ export function DashboardPage() {
             {greeting()}, <span className="bg-gradient-to-r from-amber-300 to-orange-400 bg-clip-text text-transparent">{user?.name}</span>
           </h1>
           <p className="text-sm text-slate-400">
-            Your crypto briefing for {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+            Your crypto briefing for {formatDay(today)}
           </p>
         </div>
         <nav className="flex items-center gap-2">

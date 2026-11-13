@@ -48,5 +48,6 @@ export const coinGeckoMarket = (id: string, symbol: string, change: number) => (
   image: `https://img.example/${id}.png`,
   current_price: 100,
   price_change_percentage_24h: change,
+  last_updated: '2026-11-12T10:30:00.000Z',
   sparkline_in_7d: { price: Array.from({ length: 168 }, (_, i) => 100 + i) },
 });

@@ -25,9 +25,28 @@ async function withVotes<T extends { id: string }>(userId: string, section: Sect
   return items.map((item) => ({ ...item, myVote: votes.get(item.id) ?? 0 }));
 }
 
-/** Today's date in UTC with no time part: the key for "insight of the day". */
-export function todayUtc(now = new Date()): Date {
-  return new Date(now.toISOString().slice(0, 10));
+/** True for an IANA time zone name this runtime knows, e.g. "Asia/Jerusalem". */
+export function isTimeZone(value: unknown): value is string {
+  if (typeof value !== 'string' || value === '') return false;
+  try {
+    new Intl.DateTimeFormat('en-US', { timeZone: value });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Today's calendar date in the user's time zone, as a date with no time part: the key for
+ * "insight of the day". Using the user's zone (not UTC) makes the insight switch at the user's
+ * own midnight, the same moment the dashboard's date line changes.
+ * The server computes the date itself (the client only says its zone), so a client can't ask
+ * for arbitrary days and trigger extra LLM calls.
+ */
+export function todayIn(timeZone = 'UTC', now = new Date()): Date {
+  // en-CA formats as YYYY-MM-DD.
+  const day = new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(now);
+  return new Date(day);
 }
 
 const TOP_MOVERS = 3;
@@ -55,13 +74,13 @@ export async function getNewsSection(userId: string) {
 }
 
 /**
- * The AI insight of the day. Generated once per user per UTC day and stored with its prompt and
- * model, so later reloads are instant and free. A fallback insight is never stored, so the next
- * load tries the LLM again.
+ * The AI insight of the day. Generated once per user per day (in their time zone) and stored with
+ * its prompt and model, so later reloads are instant and free. A fallback insight is never stored,
+ * so the next load tries the LLM again.
  */
-export async function getInsightSection(userId: string) {
+export async function getInsightSection(userId: string, timeZone = 'UTC') {
   const preferences = await requirePreferences(userId);
-  const day = todayUtc();
+  const day = todayIn(timeZone);
 
   const stored = await prisma.dailyInsight.findUnique({ where: { userId_day: { userId, day } } });
   if (stored) {

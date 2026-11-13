@@ -1,7 +1,7 @@
 import type { CoinMarket } from '../../api/dashboard';
 import { usePrices } from '../../hooks/useDashboard';
 import { useVote } from '../../hooks/useVote';
-import { formatPct, formatUsd } from '../../lib/format';
+import { formatPct, formatTime, formatUsd } from '../../lib/format';
 import { SectionCard } from './SectionCard';
 import { Sparkline } from './Sparkline';
 import { VoteButtons } from './VoteButtons';
@@ -28,6 +28,7 @@ function CoinRow({ coin }: { coin: CoinMarket }) {
       <div className="w-24 text-right">
         <p className="font-medium tabular-nums">{formatUsd(coin.priceUsd)}</p>
         <p className={`text-xs tabular-nums ${up ? 'text-emerald-400' : 'text-rose-400'}`}>{formatPct(coin.change24hPct)} 24h</p>
+        <p className="text-[11px] text-slate-500 tabular-nums">as of {formatTime(coin.lastUpdated)}</p>
       </div>
       <VoteButtons {...voting} label={coin.name} />
     </li>
@@ -48,7 +49,10 @@ function CoinList({ heading, coins }: { heading: string; coins: CoinMarket[] }) 
   );
 }
 
-/** The user's coins, then today's biggest movers they don't follow. Refreshes every minute. */
+/**
+ * The user's coins, then the biggest 24h moves among coins they don't follow. Refreshes every minute.
+ * Crypto trades 24/7, so there are no market hours: "24h" is a rolling window, not a calendar day.
+ */
 export function PricesSection({ className }: { className?: string }) {
   const query = usePrices();
   return (
@@ -56,7 +60,7 @@ export function PricesSection({ className }: { className?: string }) {
       {({ coins, movers }) => (
         <div className="space-y-4">
           <CoinList heading="Your coins" coins={coins} />
-          <CoinList heading="Top movers today" coins={movers} />
+          <CoinList heading="Biggest moves (24h)" coins={movers} />
         </div>
       )}
     </SectionCard>

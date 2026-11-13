@@ -13,13 +13,19 @@ const options = {
   contentTypes: [{ value: 'FUN', label: 'Fun', description: 'Memes' }],
 };
 
-/** A fake API: answers GET /me and /preferences/options, records the PUT. */
-function mockApi() {
+const saved = { assets: ['bitcoin'], investorType: 'HODLER', contentTypes: ['FUN'], updatedAt: '2026-11-12T10:00:00Z' };
+
+/**
+ * A fake API: answers GET /me, /preferences/options and /preferences, records the PUT.
+ * `existing` = a user who already finished onboarding and opened "Edit preferences".
+ */
+function mockApi({ existing = false } = {}) {
   const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
     const json = (body: unknown) => new Response(JSON.stringify(body), { status: 200 });
-    if (url === '/api/auth/me') return json({ user: { id: 'u1', email: 'a@b.co', name: 'Ada', hasPreferences: false } });
+    if (url === '/api/auth/me') return json({ user: { id: 'u1', email: 'a@b.co', name: 'Ada', hasPreferences: existing } });
     if (url === '/api/preferences/options') return json(options);
     if (url === '/api/preferences' && init?.method === 'PUT') return json({ preferences: JSON.parse(String(init.body)) });
+    if (url === '/api/preferences') return json({ preferences: existing ? saved : null });
     return new Response('{}', { status: 404 });
   });
   vi.stubGlobal('fetch', fetchMock);
@@ -75,5 +81,25 @@ describe('OnboardingPage', () => {
       investorType: 'HODLER',
       contentTypes: ['FUN'],
     });
+  });
+
+  it('starts empty for a new user, with Back disabled on the first step', async () => {
+    mockApi();
+    renderQuiz();
+
+    expect(await screen.findByRole('button', { name: /bitcoin/i })).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByRole('button', { name: /^back$/i })).toBeDisabled();
+  });
+
+  it('when editing, shows the saved answers and Back returns to the dashboard', async () => {
+    mockApi({ existing: true });
+    renderQuiz();
+
+    expect(await screen.findByRole('button', { name: /bitcoin/i })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: /ethereum/i })).toHaveAttribute('aria-pressed', 'false');
+    expect(nextButton()).toBeEnabled(); // already answered
+
+    fireEvent.click(screen.getByRole('button', { name: /back to dashboard/i }));
+    expect(await screen.findByText('dashboard page')).toBeInTheDocument();
   });
 });

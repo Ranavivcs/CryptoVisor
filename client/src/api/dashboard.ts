@@ -12,6 +12,8 @@ export interface CoinMarket {
   image: string;
   priceUsd: number;
   change24hPct: number;
+  /** When CoinGecko last updated the price (ISO time). */
+  lastUpdated: string;
   sparkline: number[];
   myVote: Vote;
 }
@@ -46,7 +48,7 @@ export interface PricesSection {
   source: DataSource;
   /** The coins the user follows, in their order. */
   coins: CoinMarket[];
-  /** Today's biggest 24h movers in the top 100 that the user doesn't follow. */
+  /** The biggest moves over the last 24 hours in the top 100, among coins the user doesn't follow. */
   movers: CoinMarket[];
 }
 export interface NewsSection {
@@ -64,7 +66,9 @@ export interface MemeSection {
 
 export const fetchPrices = () => apiFetch<PricesSection>('/dashboard/prices');
 export const fetchNews = () => apiFetch<NewsSection>('/dashboard/news');
-export const fetchInsight = () => apiFetch<InsightSection>('/dashboard/insight');
+/** `timeZone` tells the server which calendar day "today" is for this user. */
+export const fetchInsight = (timeZone: string) =>
+  apiFetch<InsightSection>(`/dashboard/insight?${new URLSearchParams({ tz: timeZone })}`);
 export const fetchMeme = () => apiFetch<MemeSection>('/dashboard/meme');
 
 export interface VoteRequest {

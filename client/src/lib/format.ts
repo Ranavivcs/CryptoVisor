@@ -11,6 +11,19 @@ export function formatPct(value: number): string {
   return `${value >= 0 ? '+' : ''}${value.toFixed(1)}%`;
 }
 
+/** "2026-11-12" → "Thursday, November 12". Built from parts, so it's read as a local date (not UTC midnight). */
+export function formatDay(dateKey: string): string {
+  const [year, month, day] = dateKey.split('-').map(Number);
+  return new Date(year, month - 1, day).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+}
+
+const clock = new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit' });
+
+/** "2:32 PM", in the user's local time. */
+export function formatTime(iso: string): string {
+  return clock.format(new Date(iso));
+}
+
 const relative = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
 
 /** "3 hours ago", "yesterday". */
