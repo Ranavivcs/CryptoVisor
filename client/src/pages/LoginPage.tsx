@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { AuthLayout } from '../components/AuthLayout';
 import { Button } from '../components/ui/Button';
+import { PasswordField } from '../components/ui/PasswordField';
 import { TextField } from '../components/ui/TextField';
 import { useLogin } from '../hooks/useAuth';
 import { formErrors } from '../lib/errors';
@@ -17,13 +18,13 @@ export function LoginPage() {
       title="Welcome back"
       subtitle="Sign in to your crypto dashboard"
       onSubmit={() => loginMutation.mutate({ email, password })}
+      pending={loginMutation.isPending}
       error={errors.form}
       footer={{ text: 'New here?', linkLabel: 'Create an account', to: '/signup' }}
     >
       <TextField label="Email" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} errors={errors.fields.email} />
-      <TextField
+      <PasswordField
         label="Password"
-        type="password"
         autoComplete="current-password"
         value={password}
         onChange={(e) => setPassword(e.target.value)}

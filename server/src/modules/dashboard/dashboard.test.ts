@@ -219,7 +219,7 @@ describe('dashboard sections', () => {
       const { body } = await agent.get('/api/dashboard/insight').expect(200);
       expect(body.source).toBe('fallback');
       expect(body.insight.text).toContain('Solana is the biggest mover');
-      expect(body.insight.text).toContain('Day Trader');
+      expect(body.insight.text).toContain('As a day trader, moves like this');
       expect(await prisma.dailyInsight.count()).toBe(0);
     });
 

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { AuthLayout } from '../components/AuthLayout';
 import { Button } from '../components/ui/Button';
+import { PasswordField } from '../components/ui/PasswordField';
 import { TextField } from '../components/ui/TextField';
 import { useRegister } from '../hooks/useAuth';
 import { formErrors } from '../lib/errors';
@@ -18,14 +19,14 @@ export function SignupPage() {
       title="Create your account"
       subtitle="Get a dashboard tuned to how you invest"
       onSubmit={() => registerMutation.mutate({ name, email, password })}
+      pending={registerMutation.isPending}
       error={errors.form}
       footer={{ text: 'Already have an account?', linkLabel: 'Sign in', to: '/login' }}
     >
       <TextField label="Name" autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} errors={errors.fields.name} />
       <TextField label="Email" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} errors={errors.fields.email} />
-      <TextField
+      <PasswordField
         label="Password"
-        type="password"
         autoComplete="new-password"
         placeholder="At least 8 characters"
         value={password}

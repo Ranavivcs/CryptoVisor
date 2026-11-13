@@ -56,8 +56,8 @@ One line per file: what it does. Read top to bottom to follow a request from the
 | `src/hooks/useAuth.ts` | `useMe` (the cached current user), login/register/logout mutations that update that cache, and `signOutLocally` |
 | `src/lib/queryClient.ts` | The React Query client: no retries on 401, and any 401 signs the user out (sends them to /login) |
 | `src/lib/errors.ts` | Turns an API error into field messages plus a form message |
-| `src/components/AuthLayout.tsx` | Shared card for the login and signup pages |
-| `src/components/ui/Button.tsx`, `TextField.tsx` | Reusable UI building blocks |
+| `src/components/AuthLayout.tsx` | Shared card for the login and signup pages: the form, a "waking up the server" hint when the request is slow, and a full-width link to the other page |
+| `src/components/ui/Button.tsx`, `TextField.tsx`, `PasswordField.tsx` | Reusable UI building blocks; `PasswordField` adds a Show/Hide toggle (`aria-pressed`) through `TextField`'s `suffix` slot |
 | `src/api/preferences.ts` | Types and functions for the preferences endpoints |
 | `src/hooks/usePreferences.ts` | `usePreferenceOptions`, `usePreferences`, and `useSavePreferences`, which also flips `hasPreferences` in the cached user so the guard lets them through |
 | `src/pages/OnboardingPage.tsx` | The 3-step quiz, driven by a `STEPS` array; one PUT on the last step. When opened from "Edit preferences" it waits for the saved answers and starts from them, and Back on step 1 returns to the dashboard |
@@ -67,6 +67,7 @@ One line per file: what it does. Read top to bottom to follow a request from the
 | `src/api/dashboard.ts` | Types for the 4 sections, plus `sendVote` (PUT for a vote, DELETE to clear it) |
 | `src/hooks/useDashboard.ts` | One query hook per section, each with its own refresh policy |
 | `src/hooks/useToday.ts` | `useToday()`: the local date, updated by one timer at midnight; plus the user's time zone for the insight request (decision 38) |
+| `src/hooks/useIsSlow.ts` | `useIsSlow(active)`: true once a request has been pending 3 s; drives the cold-start hint on the loader and the auth forms (decision 42) |
 | `src/hooks/useVote.ts` | Optimistic thumb state for one item, rolled back on error; `onSaved` lets the row react (collapse the story, load a new meme) |
 | `src/components/dashboard/SectionCard.tsx` | Shared card shell: title, "Sample" badge, loading skeleton, error and retry. Takes the query and a render function |
 | `src/components/dashboard/{Insight,Prices,News,Meme}Section.tsx` | The four sections; each renders its data inside a `SectionCard` |

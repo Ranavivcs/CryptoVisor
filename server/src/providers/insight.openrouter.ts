@@ -6,6 +6,8 @@ import type { Sourced } from './types.js';
 export interface InsightContext {
   /** Investor type label, e.g. "Day Trader". */
   investorType: string;
+  /** A sentence of advice for that investor type, used by the rule-based fallback. */
+  investorTip: string;
   /** Content type labels, e.g. ["Market News", "Fun"]. */
   interests: string[];
   /** Today's market data for the user's coins; may be empty if prices are unavailable. */
@@ -57,7 +59,7 @@ export function fallbackInsight(ctx: InsightContext): string {
   const moverLine = mover
     ? `${mover.name} is the biggest mover in your watchlist, ${mover.change24hPct >= 0 ? 'up' : 'down'} ${Math.abs(mover.change24hPct).toFixed(1)}% in 24 hours.`
     : `Your watchlist today: ${ctx.symbols.join(', ')}.`;
-  return `${moverLine} As a ${ctx.investorType}, focus on what fits your plan rather than the daily noise, and size positions so a bad day doesn't force your hand.`;
+  return `${moverLine} ${ctx.investorTip}`;
 }
 
 /**

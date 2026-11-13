@@ -7,7 +7,7 @@ import { getNews } from '../../providers/news.js';
 import { getCoinMarkets, getTopMovers, type CoinMarket } from '../../providers/prices.coingecko.js';
 import type { DataSource } from '../../providers/types.js';
 import { getDownvotedIds, getMyVotes, type MyVote } from '../feedback/feedback.service.js';
-import { coinsFor, contentTypeLabel, investorTypeLabel, symbolsFor } from '../preferences/preferences.catalog.js';
+import { coinsFor, contentTypeLabel, investorTypeLabel, investorTypeTipFor, symbolsFor } from '../preferences/preferences.catalog.js';
 import { getPreferences, type Preferences } from '../preferences/preferences.service.js';
 
 /** Each dashboard item carries the user's current vote, so the thumbs render in the right state. */
@@ -91,6 +91,7 @@ export async function getInsightSection(userId: string, timeZone = 'UTC') {
   const markets: CoinMarket[] = await getCoinMarkets(preferences.assets).catch(() => []);
   const generated = await generateInsight({
     investorType: investorTypeLabel(preferences.investorType),
+    investorTip: investorTypeTipFor(preferences.investorType),
     interests: preferences.contentTypes.map(contentTypeLabel),
     markets,
     symbols: symbolsFor(preferences.assets),

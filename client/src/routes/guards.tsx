@@ -1,10 +1,17 @@
 import { Navigate, Outlet, useLocation } from 'react-router';
 import { useMe } from '../hooks/useAuth';
+import { useIsSlow, WAKING_UP_MESSAGE } from '../hooks/useIsSlow';
 
+/**
+ * Shown while the first "who am I?" request runs. That's usually the request that hits a
+ * sleeping server, so after a few seconds it explains the wait instead of looking frozen.
+ */
 function FullPageSpinner() {
+  const slow = useIsSlow(true); // only rendered while loading
   return (
-    <div className="flex min-h-screen items-center justify-center text-slate-400" role="status">
-      Loading…
+    <div className="flex min-h-screen flex-col items-center justify-center gap-3 px-4 text-center text-slate-400" role="status">
+      <p>Loading…</p>
+      {slow && <p className="max-w-sm text-sm text-amber-200">{WAKING_UP_MESSAGE}</p>}
     </div>
   );
 }

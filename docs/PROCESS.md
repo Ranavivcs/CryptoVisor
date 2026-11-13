@@ -232,3 +232,17 @@ point (fixed with a functional state update, now tested), and the last point was
 CoinGecko's latest hourly sample, which differs slightly from the live price, so it now says "Latest hourly".
 While checking the live site, the AI also noticed that a new client talking to a not-yet-redeployed API would receive
 prices without `lastUpdated`, and formatting that would crash the page. The "as of" line is now guarded.
+
+**Login polish.** From the plan: a Show/Hide password toggle, a "Waking up the server…" hint, and a more visible link
+between sign-in and sign-up (decision 42). The hint matters most for the review itself: Render's free tier sleeps
+when idle, so a reviewer's first visit can wait about 50 seconds behind a silent spinner. It appears only after 3
+seconds, so a normal login never flashes it. Tests cover the toggle (it never submits the form) and the timer (it
+resets when the request finishes, and a fast request never shows it). The README now lists what I'd add for
+production (email verification, rate limiting, revocable sessions, a strength meter, no cold starts, account deletion).
+
+**"Why does the insight still say Sample?"** "Sample" means the LLM call didn't happen or failed, so the rule-based
+fallback was shown (honestly labelled). Locally the cause was simple: `server/.env` had no `OPENROUTER_API_KEY` line.
+The AI checked this by listing variable *names* only, never values. On the live site the key was missing from Render too; after I added it there and Render redeployed, the live insight came from the model again. The configured free models are all still listed on
+OpenRouter. My screenshot also exposed a wording bug: the fallback said "As a Just Starting, …", because one template
+didn't fit every investor-type label. Each type now has its own sentence (general risk habits, never buy/sell), with
+a test that checks every type.

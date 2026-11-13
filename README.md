@@ -120,6 +120,12 @@ LIMIT 5;
 
 ## What I'd add for production
 
+- **Email verification** on signup, and a password reset flow.
+- **Rate limiting on login and signup** (per IP and per account) against password guessing.
+- **Refresh tokens / revocable sessions:** today a JWT stays valid until it expires, even after logout on another device.
+- **A password strength meter** on signup, instead of only the 8-character minimum.
+- **No cold starts:** a paid Render plan (or an always-on host), so the first request doesn't take ~50 s.
+- **A "delete my account" button.** The database already deletes a user's preferences, insights and votes with them.
 - **Chart ranges (24h / 7d / 30d)** from CoinGecko's `/coins/{id}/market_chart`, cached per coin and range, with a paid
   API key: the free tier allows only a few calls a minute (decision 41).
 

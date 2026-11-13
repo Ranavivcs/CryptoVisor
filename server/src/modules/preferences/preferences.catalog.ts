@@ -62,6 +62,22 @@ export const PREFERENCE_OPTIONS = {
 /** Human-readable label for an investor type, e.g. "Day Trader" (used in the AI prompt). */
 export const investorTypeLabel = (type: InvestorType) => investorTypeText[type].label;
 
+/**
+ * One sentence per investor type for the rule-based insight (used when the LLM is unavailable).
+ * Whole sentences, because the labels don't fit one template: "As a Just Starting…" isn't English.
+ * General risk habits only, never "buy" or "sell". Kept apart from the quiz options so they aren't sent to the client.
+ */
+const investorTypeTip: Record<InvestorType, string> = {
+  HODLER: 'As a long-term holder, zoom out: one day matters less than your plan and your time horizon.',
+  DAY_TRADER: "As a day trader, moves like this are where the action is, so decide your exit before you enter and keep positions small.",
+  NFT_COLLECTOR: "As an NFT collector, watch how the market's mood spills into floor prices and trading volume.",
+  DEFI_EXPLORER: 'As a DeFi explorer, remember that price swings also move your collateral and yields, so check the health of your positions.',
+  NEWCOMER: "If you're just starting out, swings like this are normal in crypto: only put in what you can afford to see move, and keep learning the basics.",
+};
+
+/** The fallback insight's sentence for an investor type. */
+export const investorTypeTipFor = (type: InvestorType) => investorTypeTip[type];
+
 /** Human-readable label for a content type, e.g. "Market News". */
 export const contentTypeLabel = (type: ContentType) => contentTypeText[type].label;
 
