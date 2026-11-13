@@ -10,7 +10,7 @@ const variants = {
   ghost: 'border border-slate-700 text-slate-200 hover:bg-slate-800',
 };
 
-/** The app's button. `loading` disables it so a form can't be submitted twice. */
+/** The app's button (primary or ghost). `loading` disables it so a form can't be submitted twice. Used across pages and the quiz. */
 export function Button({ variant = 'primary', loading, disabled, className = '', children, ...rest }: ButtonProps) {
   return (
     <button

@@ -55,4 +55,17 @@ describe('useVote + VoteButtons', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('Not saved');
     expect(onSaved).not.toHaveBeenCalled();
   });
+
+  it('sends quick successive votes one at a time, in click order', async () => {
+    let finishFirst: (res: Response) => void = () => {};
+    const fetchMock = renderButtons(() => new Promise<Response>((resolve) => (finishFirst = resolve)));
+
+    fireEvent.click(like());
+    fireEvent.click(screen.getByRole('button', { name: 'Dislike the story' }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1)); // the 👎 waits for the 👍 to finish
+
+    finishFirst(new Response('{}', { status: 200 }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+    expect(JSON.parse(String(fetchMock.mock.calls[1][1]?.body))).toMatchObject({ vote: -1 });
+  });
 });

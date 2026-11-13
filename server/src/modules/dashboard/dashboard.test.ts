@@ -5,7 +5,7 @@ import { clearNewsCaches } from '../../providers/news.js';
 import { pricesCache } from '../../providers/prices.coingecko.js';
 import { coinGeckoMarket, fakeExternalApis, rssFeed } from '../../test/fake-apis.js';
 import { resetDb, signedInAgent } from '../../test/helpers.js';
-import { isTimeZone, todayIn } from './dashboard.service.js';
+import { isTimeZone, todayIn } from '../../lib/dates.js';
 
 const COINGECKO = 'api.coingecko.com';
 const CRYPTOPANIC = 'cryptopanic.com';

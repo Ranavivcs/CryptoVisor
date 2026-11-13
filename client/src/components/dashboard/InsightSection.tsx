@@ -4,6 +4,7 @@ import { useVote } from '../../hooks/useVote';
 import { SectionCard } from './SectionCard';
 import { VoteButtons } from './VoteButtons';
 
+/** The insight text, who wrote it (model or rule-based), and thumbs. Rendered by InsightSection. */
 function InsightBody({ insight }: { insight: Insight }) {
   const voting = useVote({ section: 'INSIGHT', itemId: insight.id, content: { text: insight.text, model: insight.model } }, insight.myVote);
   return (
@@ -19,7 +20,10 @@ function InsightBody({ insight }: { insight: Insight }) {
   );
 }
 
-/** The AI insight of the day, written for this user's coins and investor type. */
+/**
+ * The AI Insight of the Day card, written for this user's coins and investor type.
+ * Data from GET /api/dashboard/insight (useInsight). Rendered by DashboardPage, always first.
+ */
 export function InsightSection({ className }: { className?: string }) {
   const query = useInsight();
   return (

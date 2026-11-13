@@ -16,6 +16,11 @@ describe('parseRss', () => {
     });
   });
 
+  it('keeps query parameters that are part of the article address', () => {
+    const xml = '<rss><channel><item><title>T</title><link>https://n.example/a?id=7&amp;utm_medium=rss&amp;ref=feed</link></item></channel></rss>';
+    expect(parseRss(xml, 'Feed')[0].url).toBe('https://n.example/a?id=7');
+  });
+
   it('decodes HTML entities in plain (non-CDATA) titles', () => {
     const xml = '<rss><channel><item><title>Bitcoin &#39;Running on Empty&#39; &amp; more</title><link>https://n.example/1</link></item></channel></rss>';
     expect(parseRss(xml, 'Feed')[0].title).toBe("Bitcoin 'Running on Empty' & more");
@@ -35,11 +40,12 @@ describe('tagCoins', () => {
   const tag = (title: string) =>
     tagCoins([{ id: '1', title, url: 'u', sourceName: 's', publishedAt: null, coins: [] }], coins)[0].coins;
 
-  it('matches coin names and tickers as whole words, case-insensitively', () => {
+  it('matches names in any case and tickers in capitals, as whole words', () => {
     expect(tag('solana and LINK lead the market')).toEqual(['SOL', 'LINK']);
   });
 
-  it('ignores partial words', () => {
+  it('ignores partial words, and tickers that are ordinary lower-case words', () => {
     expect(tag('Solar farms and linkedin posts')).toEqual([]);
+    expect(tag('Coinbase to link accounts with PayPal')).toEqual([]);
   });
 });

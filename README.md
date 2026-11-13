@@ -1,137 +1,67 @@
 # AI Crypto Advisor
 
-A personalized crypto investor dashboard. Users sign up, answer a short onboarding quiz, and get a daily
-dashboard (market news, coin prices, an AI insight of the day, and a meme), each section with thumbs up/down
-feedback stored for future model improvements.
+A personalised daily crypto dashboard. Sign up, answer three quick questions, and get your briefing:
+prices for your coins, news about them, an AI-written insight of the day, and a meme.
+Rate anything with 👍/👎; your votes are stored to improve future recommendations.
 
-> **Live app:** https://cryptovisorai.vercel.app · **API:** https://cryptovisor-api.onrender.com/api/health · **Status:** in progress
->
-> The API runs on Render's free tier, which sleeps after 15 minutes without traffic.
-> The first request after that can take about 50 seconds while the server wakes up.
+**Live:** https://cryptovisorai.vercel.app
 
-## Stack
+> Runs on free hosting: if nobody has used it for a while, the first load can take up to a minute while the server wakes up.
 
-| Layer | Tech | Hosted on |
-|---|---|---|
-| Client | React, Vite, TypeScript, TanStack Query, React Router, Tailwind | Vercel |
-| API | Node, Express, TypeScript, zod, JWT (httpOnly cookie) | Render |
-| Database | PostgreSQL via Prisma | Neon |
+## Features
 
-```
-Browser ──► Vercel (static React app)
-   │  /api/*  (rewrite: same origin, so the auth cookie is first-party)
-   ▼
-Render (Express API) ──► Neon (Postgres)
-                     └─► CoinGecko · CryptoPanic · OpenRouter
-```
+- **Personalised onboarding:** pick your coins, your investor type and what you want to see. Change it any time.
+- **Coin prices** with the 24h change, the biggest 24h movers, and a 7-day chart per coin.
+- **Market news** about your coins, from CoinDesk, Cointelegraph and Decrypt.
+- **AI insight of the day**, written for your coins and investing style.
+- **A crypto meme**, because markets are stressful.
+- **Feedback that does something:** a 👎 on a story hides it, a 👎 on a meme shows another one.
 
-## Run locally
+## Tech
+
+| | |
+|---|---|
+| Frontend | React, TypeScript, Vite, TanStack Query, Tailwind (on Vercel) |
+| Backend | Node, Express, TypeScript, zod, JWT in an httpOnly cookie (on Render) |
+| Database | PostgreSQL with Prisma (on Neon) |
+| Data | CoinGecko (prices), RSS feeds (news), OpenRouter free models (AI), Reddit via meme-api.com (memes) |
+
+Every external source has a fallback, so the dashboard keeps working (and says so) when one is down.
+Nothing here is financial advice.
+
+## Run it locally
 
 Needs Node 22+ and Docker.
 
 ```bash
-docker compose up -d                 # local Postgres on port 5433 (+ a moveo_test DB)
-cd server && cp .env.example .env    # then set JWT_SECRET
-npm install && npx prisma migrate dev && npm run dev    # API on :4000
-cd ../client && npm install && npm run dev              # app on :5173
+docker compose up -d                                  # local Postgres
+cd server && cp .env.example .env                     # set JWT_SECRET; OPENROUTER_API_KEY is optional
+npm install && npx prisma migrate dev && npm run dev  # API on http://localhost:4000
+cd ../client && npm install && npm run dev            # app on http://localhost:5173
 ```
 
-Tests: `npm test` in `server/` (needs the Docker DB) and in `client/`.
-
-## API
-
-All responses are JSON. Errors look like `{ "error": string, "details"?: { field: string[] } }`.
-
-| Method | Path | Auth | Body / notes |
-|---|---|---|---|
-| GET | `/api/health` | – | `{ ok: true }` |
-| POST | `/api/auth/register` | – | `{ email, name, password }` → `201 { user }`, sets cookie. `409` if the email exists |
-| POST | `/api/auth/login` | – | `{ email, password }` → `{ user }`, sets cookie. `401` on bad credentials |
-| POST | `/api/auth/logout` | – | `204`, clears cookie |
-| GET | `/api/auth/me` | ✓ | `{ user }` where `user = { id, email, name, hasPreferences }` |
-| GET | `/api/preferences/options` | ✓ | Quiz choices: `{ coins, investorTypes, contentTypes }` |
-| GET | `/api/preferences` | ✓ | `{ preferences }`, which is `null` before onboarding |
-| PUT | `/api/preferences` | ✓ | `{ assets: string[], investorType, contentTypes: string[] }` → `{ preferences }`. Creates or replaces |
-| GET | `/api/dashboard/prices` | ✓ | `{ source, coins: [{ id, symbol, name, image, priceUsd, change24hPct, sparkline, myVote }] }`. `503` if CoinGecko is down and nothing is cached |
-| GET | `/api/dashboard/news` | ✓ | `{ source, items: [{ id, title, url, sourceName, publishedAt, coins, myVote }] }` |
-| GET | `/api/dashboard/insight` | ✓ | `{ source, insight: { id, text, model, myVote } }`. Generated once per user per day; `?tz=Area/City` sets which day (default UTC) |
-| GET | `/api/dashboard/meme` | ✓ | `{ source, meme: { id, title, imageUrl, text, postUrl, myVote } }`. Random on each call |
-| PUT | `/api/feedback` | ✓ | `{ section: NEWS\|PRICES\|INSIGHT\|MEME, itemId, vote: 1\|-1, content }`. Creates or changes the vote |
-| DELETE | `/api/feedback/:section/:itemId` | ✓ | Removes the vote. `204` |
-
-Every dashboard response has `source: "live" | "fallback"`, and `myVote` is `1`, `-1` or `0` (no vote).
-
-## Where the data comes from
-
-| Section | Live source | When it's unavailable |
-|---|---|---|
-| Coin Prices | CoinGecko `/coins/markets` (no key needed), cached for 60 s | The last cached prices; otherwise an error card (we never show made-up prices) |
-| Market News | Three free RSS feeds merged (Cointelegraph, CoinDesk, Decrypt), tagged by coin, cached for 10 min. CryptoPanic is tried first if `CRYPTOPANIC_API_KEY` is set (its API now requires a paid plan) | Built-in explainer links for the user's coins, marked "Sample" |
-| AI Insight | OpenRouter free models (`OPENROUTER_API_KEY`), tried in order from `OPENROUTER_MODELS`, reasoning off; stored once per day | A rule-based insight naming the biggest mover in the user's watchlist |
-| Meme | r/cryptocurrencymemes via meme-api.com (NSFW and spoiler posts filtered out) | Built-in text memes |
+Tests: `npm test` in `server/` (uses the Docker database) and in `client/`.
 
 ## Database
 
-Postgres on Neon (Frankfurt), managed with Prisma migrations (`server/prisma/schema.prisma`).
-Reviewers get a **read-only** login (the `reviewer` role, sent separately, never in this repo). It can `SELECT`
-every table but can't write, and it can't read `User.passwordHash`, so `SELECT *` on `"User"` fails: name the columns.
+| Table | What it holds |
+|---|---|
+| `User` | Account: email, name, password hash |
+| `Preferences` | The onboarding answers |
+| `DailyInsight` | One AI insight per user per day, with the model and prompt that produced it |
+| `Feedback` | Each 👍/👎, with a snapshot of what was shown and the user's preferences at that moment |
 
-| Table | One row per | What it's for |
-|---|---|---|
-| `User` | account | Email, name, bcrypt password hash |
-| `Preferences` | user (after onboarding) | The quiz answers: coins (`assets`), investor type, content types |
-| `DailyInsight` | user per day (in their time zone) | The AI insight, the model that wrote it, and the exact prompt sent |
-| `Feedback` | user per voted item | `vote` (+1 / -1) and `contentSnapshot`: what the user saw plus their preferences at that moment |
-
-Table and column names are camelCase, so quote them in SQL (`"Feedback"`, `"itemId"`).
+Read-only access for reviewers is sent with the submission. Example query:
 
 ```sql
--- Votes per section: how many up and down.
-SELECT section,
-       count(*) FILTER (WHERE vote = 1)  AS up,
-       count(*) FILTER (WHERE vote = -1) AS down
-FROM "Feedback"
-GROUP BY section
-ORDER BY section;
-
--- The 👍 ratio of AI insights, per model.
-SELECT d.model,
-       count(*) AS votes,
-       round(avg((f.vote = 1)::int), 2) AS up_ratio
-FROM "Feedback" f
-JOIN "DailyInsight" d ON d.id = f."itemId"
-WHERE f.section = 'INSIGHT'
-GROUP BY d.model;
-
--- The latest votes, with what was shown and who it was shown to.
-SELECT section, vote, "updatedAt",
-       "contentSnapshot"->'item'                         AS item,
-       "contentSnapshot"->'preferences'->>'investorType' AS investor_type
-FROM "Feedback"
-ORDER BY "updatedAt" DESC
-LIMIT 10;
-
--- The latest insights and the prompts that produced them.
-SELECT day, model, text, prompt
-FROM "DailyInsight"
-ORDER BY "createdAt" DESC
-LIMIT 5;
+SELECT section, count(*) FILTER (WHERE vote = 1) AS up, count(*) FILTER (WHERE vote = -1) AS down
+FROM "Feedback" GROUP BY section;
 ```
 
-## What I'd add for production
+## More
 
-- **Email verification** on signup, and a password reset flow.
-- **Rate limiting on login and signup** (per IP and per account) against password guessing.
-- **Refresh tokens / revocable sessions:** today a JWT stays valid until it expires, even after logout on another device.
-- **A password strength meter** on signup, instead of only the 8-character minimum.
-- **No cold starts:** a paid Render plan (or an always-on host), so the first request doesn't take ~50 s.
-- **A "delete my account" button.** The database already deletes a user's preferences, insights and votes with them.
-- **Chart ranges (24h / 7d / 30d)** from CoinGecko's `/coins/{id}/market_chart`, cached per coin and range, with a paid
-  API key: the free tier allows only a few calls a minute (decision 41).
-
-## Docs
-
-- [Decision log](docs/DECISIONS.md)
-- [Code walkthrough](docs/WALKTHROUGH.md)
 - [How I worked with AI](docs/PROCESS.md)
-- [Bonus: how the 👍/👎 feedback would train or improve the models](docs/FEEDBACK_TRAINING.md)
+- [Bonus: how the feedback would train the models](docs/FEEDBACK_TRAINING.md)
+
+**Next steps for production:** email verification and password reset, rate limiting on login, revocable sessions,
+always-on hosting (no cold start), account deletion, and 24h/30d chart ranges.

@@ -18,6 +18,7 @@ const SECTIONS: Record<DashboardSection, ComponentType<{ className?: string }>> 
   meme: MemeSection,
 };
 
+/** "Good morning/afternoon/evening" for the header, from the local hour. */
 function greeting(hour = new Date().getHours()): string {
   if (hour < 12) return 'Good morning';
   if (hour < 18) return 'Good afternoon';
@@ -27,6 +28,7 @@ function greeting(hour = new Date().getHours()): string {
 /**
  * The daily dashboard. Each section fetches its own data, so a slow or failing source
  * affects one card, not the page. The order follows the user's content preferences.
+ * Route "/" in App.tsx, behind RequireAuth.
  */
 export function DashboardPage() {
   const { data: user } = useMe();

@@ -7,7 +7,7 @@ import { VoteButtons } from './VoteButtons';
 
 /**
  * One headline. A 👎 collapses it right away with an Undo; the server also leaves it out
- * of this user's feed from then on.
+ * of this user's feed from then on. Rendered by NewsSection.
  */
 function NewsRow({ item }: { item: NewsItem }) {
   const voting = useVote(
@@ -48,7 +48,10 @@ function NewsRow({ item }: { item: NewsItem }) {
   );
 }
 
-/** Headlines about the user's coins first, then general market news. */
+/**
+ * The Market News card: headlines about the user's coins first, then general market news.
+ * Data from GET /api/dashboard/news (useNews). Rendered by DashboardPage.
+ */
 export function NewsSection({ className }: { className?: string }) {
   const query = useNews();
   return (

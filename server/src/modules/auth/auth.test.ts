@@ -24,6 +24,14 @@ describe('POST /api/auth/register', () => {
     expect(res.body.error).toMatch(/already exists/);
   });
 
+  it('answers 409, not 500, when two signups with the same email race each other', async () => {
+    const [a, b] = await Promise.all([
+      request(app).post('/api/auth/register').send(testUser),
+      request(app).post('/api/auth/register').send(testUser),
+    ]);
+    expect([a.status, b.status].sort()).toEqual([201, 409]);
+  });
+
   it('rejects invalid input with field errors', async () => {
     const res = await request(app)
       .post('/api/auth/register')

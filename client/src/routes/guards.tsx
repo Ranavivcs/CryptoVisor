@@ -18,7 +18,7 @@ function FullPageSpinner() {
 
 /**
  * Wraps every signed-in page. Sends guests to /login, and users without
- * preferences to /onboarding (so the quiz runs once, right after the first login).
+ * preferences to /onboarding (so the quiz runs once, right after the first login). Used in App.tsx.
  */
 export function RequireAuth() {
   const { data: user, isPending } = useMe();
@@ -30,7 +30,7 @@ export function RequireAuth() {
   return <Outlet />;
 }
 
-/** Wraps /login and /signup: a signed-in user has no reason to see them. */
+/** Wraps /login and /signup (App.tsx): a signed-in user has no reason to see them. */
 export function GuestOnly() {
   const { data: user, isPending } = useMe();
 

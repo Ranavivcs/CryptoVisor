@@ -6,7 +6,7 @@ import { TextField } from '../components/ui/TextField';
 import { useRegister } from '../hooks/useAuth';
 import { formErrors } from '../lib/errors';
 
-/** Signup page. The server signs the new user in, and the guards send them to onboarding. */
+/** /signup (App.tsx, behind GuestOnly). The server signs the new user in, and the guards send them to onboarding. */
 export function SignupPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');

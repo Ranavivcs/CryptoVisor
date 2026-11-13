@@ -19,10 +19,15 @@ export class TtlCache<V> {
   private readonly inFlight = new Map<string, Promise<V>>();
   private readonly ttlMs: number;
 
+  /**  ttlMs how long a loaded value counts as fresh. */
   constructor(ttlMs: number) {
     this.ttlMs = ttlMs;
   }
 
+  /**
+   * The cached value for `key`, or the result of `load()` (see the class comment for the rules).
+   * Used by every provider: prices, news feeds, CryptoPanic and memes.
+   */
   async getOrLoad(key: string, load: () => Promise<V>): Promise<V> {
     const entry = this.entries.get(key);
     if (entry && entry.expiresAt > Date.now()) return entry.value;
@@ -46,6 +51,7 @@ export class TtlCache<V> {
     }
   }
 
+  /** Empties the cache. Tests call it between cases so they don't share data. */
   clear() {
     this.entries.clear();
     this.inFlight.clear();

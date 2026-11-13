@@ -27,28 +27,37 @@ const MAX_ITEMS = 8;
 const cryptoPanicCache = new TtlCache<NewsItem[]>(10 * 60_000);
 const feedCache = new TtlCache<NewsItem[]>(10 * 60_000);
 
+/** Escapes regex special characters, so a coin name is matched literally. Used by `tagCoins`. */
 const escape = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 /**
- * Tags each headline with the user's coins it mentions, by name or ticker as a whole word
- * ("Solana", "SOL"), so "solar" doesn't count as Solana.
+ * Tags each headline with the user's coins it mentions, as whole words: the name in any case
+ * ("solana"), the ticker in capitals only ("LINK", not the word "link"), so ordinary words like
+ * "link" or "dot" don't tag Chainlink or Polkadot, and "solar" doesn't count as Solana.
+ * Used by `loadRssNews` below; CryptoPanic stories arrive already tagged and are kept as they are.
  */
 export function tagCoins(items: NewsItem[], coins: CoinRef[]): NewsItem[] {
   const matchers = coins.map((coin) => ({
     symbol: coin.symbol,
-    pattern: new RegExp(`\\b(${escape(coin.name)}|${escape(coin.symbol)})\\b`, 'i'),
+    name: new RegExp(`\\b${escape(coin.name)}\\b`, 'i'),
+    ticker: new RegExp(`\\b${escape(coin.symbol)}\\b`),
   }));
   return items.map((item) => ({
     ...item,
-    coins: item.coins.length > 0 ? item.coins : matchers.filter((m) => m.pattern.test(item.title)).map((m) => m.symbol),
+    coins:
+      item.coins.length > 0
+        ? item.coins
+        : matchers.filter((m) => m.name.test(item.title) || m.ticker.test(item.title)).map((m) => m.symbol),
   }));
 }
 
+/** Sort comparator: newest story first, undated ones last. Used by `rankBySymbols`. */
 const newestFirst = (a: NewsItem, b: NewsItem) => (b.publishedAt ?? '').localeCompare(a.publishedAt ?? '');
 
 /**
  * Stories about the user's coins first, then general market stories (no coin tag), each group
  * newest first; at most MAX_ITEMS. Stories tagged only with other coins are dropped.
+ * Used by `getNews` for every source.
  */
 export function rankBySymbols(items: NewsItem[], symbols: string[]): NewsItem[] {
   const wanted = new Set(symbols);
@@ -59,7 +68,7 @@ export function rankBySymbols(items: NewsItem[], symbols: string[]): NewsItem[] 
 
 /**
  * All RSS feeds merged. A feed that fails is skipped, so one outage doesn't empty the card.
- * Mixed-topic feeds only contribute stories about the user's coins.
+ * Mixed-topic feeds only contribute stories about the user's coins. Used by `getNews`.
  */
 async function loadRssNews(coins: CoinRef[]): Promise<NewsItem[]> {
   const results = await Promise.allSettled(
@@ -82,6 +91,7 @@ async function loadRssNews(coins: CoinRef[]): Promise<NewsItem[]> {
  * 1. CryptoPanic, the suggested API (only with a paid key, see CRYPTOPANIC_API_KEY)
  * 2. Free RSS feeds (Cointelegraph, CoinDesk, Decrypt), merged
  * 3. Built-in explainer links, marked as fallback
+ * Called by `getNewsSection` (dashboard.service.ts).
  */
 export async function getNews(coins: CoinRef[], excludeIds: Set<string> = new Set()): Promise<Sourced<NewsItem[]>> {
   const symbols = coins.map((coin) => coin.symbol);
@@ -91,8 +101,8 @@ export async function getNews(coins: CoinRef[], excludeIds: Set<string> = new Se
   if (apiKey) {
     try {
       const key = [...symbols].sort().join(',');
-      const items = await cryptoPanicCache.getOrLoad(key, () => fetchCryptoPanicNews(apiKey, symbols));
-      if (visible(items).length > 0) return { source: 'live', data: visible(items) };
+      const items = visible(await cryptoPanicCache.getOrLoad(key, () => fetchCryptoPanicNews(apiKey, symbols)));
+      if (items.length > 0) return { source: 'live', data: items };
     } catch (err) {
       console.warn('News: CryptoPanic failed, trying RSS.', (err as Error).message);
     }

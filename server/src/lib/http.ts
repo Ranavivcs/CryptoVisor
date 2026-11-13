@@ -6,7 +6,8 @@ interface RequestOptions {
   timeoutMs?: number;
 }
 
-/** Calls an external URL. Throws on network errors, timeouts and non-2xx responses. */
+/**
+ * Calls an external URL (the shared core of `fetchJson` and `fetchText` below). Throws on network errors, timeouts and non-2xx responses. */
 async function request(url: string, accept: string, { method = 'GET', headers = {}, body, timeoutMs = 8000 }: RequestOptions): Promise<Response> {
   const res = await fetch(url, {
     method,
@@ -25,12 +26,12 @@ async function request(url: string, accept: string, { method = 'GET', headers = 
   return res;
 }
 
-/** GET/POST an external JSON API. */
+/** GET/POST an external JSON API. Used by the CoinGecko, CryptoPanic, OpenRouter and meme providers. */
 export async function fetchJson<T>(url: string, options: RequestOptions = {}): Promise<T> {
   return (await (await request(url, 'application/json', options)).json()) as T;
 }
 
-/** GET an external text resource, e.g. an RSS feed. */
+/** GET an external text resource, e.g. an RSS feed. Used by news.rss.ts. */
 export async function fetchText(url: string, options: RequestOptions = {}): Promise<string> {
   return (await request(url, 'application/rss+xml, application/xml, text/xml', options)).text();
 }

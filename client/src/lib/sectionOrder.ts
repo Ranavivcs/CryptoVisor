@@ -15,7 +15,7 @@ const DEFAULT_ORDER: DashboardSection[] = ['prices', 'news', 'meme'];
 /**
  * All four sections always show; the user's preferences decide the order.
  * The AI insight stays first (it's the personal summary), then the sections they picked,
- * then the rest.
+ * then the rest. Used by DashboardPage.
  */
 export function sectionOrder(contentTypes: ContentType[]): DashboardSection[] {
   const picked = contentTypes.map((type) => SECTION_FOR[type]);

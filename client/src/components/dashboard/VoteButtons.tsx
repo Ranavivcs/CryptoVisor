@@ -5,8 +5,8 @@ interface VoteButtonsProps extends VoteState {
   label: string;
 }
 
-/** A thumb outline; filled when active. `down` flips it into a thumbs-down. */
-function ThumbIcon({ filled, down }: { filled: boolean; down?: boolean }) {
+/** A thumb outline; filled when active. `down` flips it into a thumbs-down. Drawn by ThumbButton. */
+function ThumbIcon({ filled, down }: { filled: boolean; down: boolean }) {
   return (
     <svg viewBox="0 0 24 24" className={`h-4 w-4 ${down ? 'rotate-180' : ''}`} fill={filled ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
       <path d="M7 10v12" />
@@ -15,11 +15,43 @@ function ThumbIcon({ filled, down }: { filled: boolean; down?: boolean }) {
   );
 }
 
-const base = 'flex h-8 w-8 items-center justify-center rounded-lg border transition';
+/** Everything that differs between the two thumbs, so both are drawn by one ThumbButton. */
+const THUMBS = {
+  up: {
+    value: 1,
+    verb: 'Like',
+    active: 'border-emerald-400 bg-emerald-500/20 text-emerald-300',
+    idle: 'border-transparent text-emerald-400/70 hover:border-emerald-500/40 hover:bg-emerald-500/10 hover:text-emerald-300',
+  },
+  down: {
+    value: -1,
+    verb: 'Dislike',
+    active: 'border-rose-400 bg-rose-500/20 text-rose-300',
+    idle: 'border-transparent text-rose-400/70 hover:border-rose-500/40 hover:bg-rose-500/10 hover:text-rose-300',
+  },
+} as const;
+
+/** One thumb: a toggle button (`aria-pressed`) named "Like X" / "Dislike X". Used twice by VoteButtons. */
+function ThumbButton({ kind, vote, cast, label }: { kind: keyof typeof THUMBS; vote: VoteState['vote']; cast: VoteState['cast']; label: string }) {
+  const thumb = THUMBS[kind];
+  const pressed = vote === thumb.value;
+  return (
+    <button
+      type="button"
+      aria-pressed={pressed}
+      aria-label={`${thumb.verb} ${label}`}
+      onClick={() => cast(thumb.value)}
+      className={`flex h-8 w-8 items-center justify-center rounded-lg border transition ${pressed ? thumb.active : thumb.idle}`}
+    >
+      <ThumbIcon filled={pressed} down={kind === 'down'} />
+    </button>
+  );
+}
 
 /**
- * Green thumbs-up / red thumbs-down for one item, filled when active. Presentational: the state
- * comes from `useVote` in the parent, so the parent can also react to the vote.
+ * Green thumbs-up / red thumbs-down for one item, filled when active, plus a "Saved" / "Not saved"
+ * hint. Presentational: the state comes from `useVote` in the parent (CoinRow, NewsRow, InsightBody,
+ * MemeBody), so the parent can also react to the vote.
  */
 export function VoteButtons({ vote, cast, savedAt, isError, label }: VoteButtonsProps) {
   return (
@@ -36,24 +68,8 @@ export function VoteButtons({ vote, cast, savedAt, isError, label }: VoteButtons
           </span>
         )
       )}
-      <button
-        type="button"
-        aria-pressed={vote === 1}
-        aria-label={`Like ${label}`}
-        onClick={() => cast(1)}
-        className={`${base} ${vote === 1 ? 'border-emerald-400 bg-emerald-500/20 text-emerald-300' : 'border-transparent text-emerald-400/70 hover:border-emerald-500/40 hover:bg-emerald-500/10 hover:text-emerald-300'}`}
-      >
-        <ThumbIcon filled={vote === 1} />
-      </button>
-      <button
-        type="button"
-        aria-pressed={vote === -1}
-        aria-label={`Dislike ${label}`}
-        onClick={() => cast(-1)}
-        className={`${base} ${vote === -1 ? 'border-rose-400 bg-rose-500/20 text-rose-300' : 'border-transparent text-rose-400/70 hover:border-rose-500/40 hover:bg-rose-500/10 hover:text-rose-300'}`}
-      >
-        <ThumbIcon filled={vote === -1} down />
-      </button>
+      <ThumbButton kind="up" vote={vote} cast={cast} label={label} />
+      <ThumbButton kind="down" vote={vote} cast={cast} label={label} />
     </div>
   );
 }

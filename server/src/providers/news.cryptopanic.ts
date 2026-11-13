@@ -16,6 +16,7 @@ interface CryptoPanicPost {
 
 const API_URL = 'https://cryptopanic.com/api/developer/v2/posts/';
 
+/** CryptoPanic post → our NewsItem (CryptoPanic tags coins itself). Used by `fetchCryptoPanicNews`. */
 function toNewsItem(post: CryptoPanicPost): NewsItem {
   return {
     id: `cp-${post.id}`,
@@ -30,6 +31,7 @@ function toNewsItem(post: CryptoPanicPost): NewsItem {
 /**
  * News filtered by coin symbols from CryptoPanic, the source the assignment suggests.
  * Its API now requires a paid plan, so this runs only when CRYPTOPANIC_API_KEY is set.
+ * Called by `getNews` (news.ts), through its cache.
  */
 export async function fetchCryptoPanicNews(apiKey: string, symbols: string[]): Promise<NewsItem[]> {
   const params = new URLSearchParams({ auth_token: apiKey, public: 'true', kind: 'news', currencies: symbols.join(',') });

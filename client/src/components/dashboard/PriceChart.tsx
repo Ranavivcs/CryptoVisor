@@ -1,5 +1,5 @@
 import { useRef, useState, type KeyboardEvent, type PointerEvent } from 'react';
-import { chartStats, pointTime } from '../../lib/chart';
+import { chartStats, clamp, pointTime } from '../../lib/chart';
 import { formatPct, formatUsd } from '../../lib/format';
 
 interface PriceChartProps {
@@ -22,6 +22,7 @@ const pointLabel = new Intl.DateTimeFormat('en-US', { weekday: 'short', hour: 'n
  * A larger 7-day price chart with a readout. Hover (or drag on a phone) to see the price at
  * any point; with the keyboard it's a slider (arrow keys, Home, End).
  * Hand-drawn SVG instead of a chart library: one line and one area don't justify ~100 KB of code.
+ * Rendered by CoinRow when the user expands a coin.
  */
 export function PriceChart({ values, endTime, label }: PriceChartProps) {
   const [active, setActive] = useState<number | null>(null);
@@ -41,17 +42,19 @@ export function PriceChart({ values, endTime, label }: PriceChartProps) {
   const shownTime = shown === last ? 'Latest hourly' : `~${pointLabel.format(pointTime(shown, values.length, new Date(endTime)))}`;
   const shownText = `${shownTime}: ${formatUsd(values[shown])}`;
 
-  /** Pointer x → nearest point. */
+  /** Pointer x → index of the nearest point. Used by the pointer handlers below. */
   function indexAt(clientX: number): number {
     const box = plotRef.current!.getBoundingClientRect();
-    const ratio = Math.min(Math.max((clientX - box.left) / box.width, 0), 1);
+    const ratio = clamp((clientX - box.left) / box.width, 0, 1);
     return Math.round(ratio * last);
   }
 
+  /** Hover or drag: show the point under the pointer. */
   function onPointerMove(event: PointerEvent) {
     setActive(indexAt(event.clientX));
   }
 
+  /** Slider keys: ←/→ move one point, Home/End jump to the ends. */
   function onKeyDown(event: KeyboardEvent) {
     const moves: Record<string, (from: number) => number> = {
       ArrowLeft: (from) => from - 1,
@@ -63,7 +66,7 @@ export function PriceChart({ values, endTime, label }: PriceChartProps) {
     if (!move) return;
     event.preventDefault();
     // A functional update, so fast repeated keys each start from the latest point, not a stale one.
-    setActive((current) => Math.min(Math.max(move(current ?? last), 0), last));
+    setActive((current) => clamp(move(current ?? last), 0, last));
   }
 
   return (

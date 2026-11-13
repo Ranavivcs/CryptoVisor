@@ -48,6 +48,7 @@ export function thin(values: number[], points: number): number[] {
   return Array.from({ length: points }, (_, i) => values[Math.round(i * step)]);
 }
 
+/** CoinGecko row → our CoinMarket (upper-case symbol, thinned sparkline). Used by `fetchMarkets`. */
 function toCoinMarket(raw: CoinGeckoMarket): CoinMarket {
   return {
     id: raw.id,
@@ -61,6 +62,7 @@ function toCoinMarket(raw: CoinGeckoMarket): CoinMarket {
   };
 }
 
+/** One /coins/markets call (USD, with sparkline), sending the optional API key. Used by the two loaders below. */
 async function fetchMarkets(params: Record<string, string>): Promise<CoinMarket[]> {
   const query = new URLSearchParams({ vs_currency: 'usd', sparkline: 'true', price_change_percentage: '24h', ...params });
   const headers: Record<string, string> = env.COINGECKO_API_KEY ? { 'x-cg-demo-api-key': env.COINGECKO_API_KEY } : {};
@@ -68,7 +70,7 @@ async function fetchMarkets(params: Record<string, string>): Promise<CoinMarket[
   return raw.map(toCoinMarket);
 }
 
-/** The top 100 coins by market cap, cached for a minute. */
+/** The top 100 coins by market cap, cached for a minute. Shared by `getCoinMarkets` and `getTopMovers`. */
 function getTopMarkets(): Promise<CoinMarket[]> {
   return cache.getOrLoad('top', () => fetchMarkets({ order: 'market_cap_desc', per_page: String(TOP_N), page: '1' }));
 }
@@ -77,7 +79,7 @@ function getTopMarkets(): Promise<CoinMarket[]> {
  * Price, 24h change and 7-day sparkline for the given CoinGecko ids, in the same order as
  * `coinIds`. Served from the top-100 snapshot; a coin that has dropped out of the top 100
  * is fetched by id. There's no fake fallback for prices: if CoinGecko is down and nothing is
- * cached, this throws.
+ * cached, this throws. Used by the prices and insight sections (dashboard.service.ts).
  */
 export async function getCoinMarkets(coinIds: string[]): Promise<CoinMarket[]> {
   const byId = new Map((await getTopMarkets()).map((market) => [market.id, market]));
@@ -89,7 +91,7 @@ export async function getCoinMarkets(coinIds: string[]): Promise<CoinMarket[]> {
   return coinIds.flatMap((id) => byId.get(id) ?? []);
 }
 
-/** The `count` coins with the biggest 24h move (up or down) in the top 100, skipping `excludeIds`. */
+/** The `count` coins with the biggest 24h move (up or down) in the top 100, skipping `excludeIds`. Used by the prices section. */
 export async function getTopMovers(excludeIds: Set<string>, count: number): Promise<CoinMarket[]> {
   return (await getTopMarkets())
     .filter((market) => !excludeIds.has(market.id))

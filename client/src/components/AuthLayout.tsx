@@ -14,10 +14,11 @@ interface AuthLayoutProps {
   children: ReactNode;
 }
 
-/** The shared card used by the login and signup pages: title, form, error and a link to the other page. */
+/** The shared card used by LoginPage and SignupPage: title, form, error, slow-server hint and a link to the other page. */
 export function AuthLayout({ title, subtitle, onSubmit, pending, error, footer, children }: AuthLayoutProps) {
   const slow = useIsSlow(pending);
 
+  /** Stops the browser's full-page submit and hands over to the page's mutation. */
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
     onSubmit();

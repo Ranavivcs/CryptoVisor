@@ -49,6 +49,7 @@ const contentTypeText: Record<ContentType, Omit<Choice<ContentType>, 'value'>> =
   FUN: { label: 'Fun', description: 'Memes and lighter takes' },
 };
 
+/** A label map → the `{ value, label, description }[]` list the quiz renders. Used by PREFERENCE_OPTIONS below. */
 function toChoices<T extends string>(text: Record<T, Omit<Choice<T>, 'value'>>): Choice<T>[] {
   return (Object.keys(text) as T[]).map((value) => ({ value, ...text[value] }));
 }
@@ -59,7 +60,7 @@ export const PREFERENCE_OPTIONS = {
   contentTypes: toChoices(contentTypeText),
 };
 
-/** Human-readable label for an investor type, e.g. "Day Trader" (used in the AI prompt). */
+/** Human-readable label for an investor type, e.g. "Day Trader". Used to build the insight context (dashboard.service.ts). */
 export const investorTypeLabel = (type: InvestorType) => investorTypeText[type].label;
 
 /**
@@ -75,18 +76,18 @@ const investorTypeTip: Record<InvestorType, string> = {
   NEWCOMER: "If you're just starting out, swings like this are normal in crypto: only put in what you can afford to see move, and keep learning the basics.",
 };
 
-/** The fallback insight's sentence for an investor type. */
+/** The fallback insight's sentence for an investor type. Used to build the insight context (dashboard.service.ts). */
 export const investorTypeTipFor = (type: InvestorType) => investorTypeTip[type];
 
-/** Human-readable label for a content type, e.g. "Market News". */
+/** Human-readable label for a content type, e.g. "Market News". Used to build the insight context (dashboard.service.ts). */
 export const contentTypeLabel = (type: ContentType) => contentTypeText[type].label;
 
-/** The catalog entries for CoinGecko ids, in the same order. Unknown ids are skipped. */
+/** The catalog entries for CoinGecko ids, in the same order; unknown ids are skipped. Used by the news section (names for coin tagging). */
 export function coinsFor(coinIds: string[]): Coin[] {
   return coinIds.flatMap((id) => SUPPORTED_COINS.find((coin) => coin.id === id) ?? []);
 }
 
-/** Ticker symbols for CoinGecko ids, e.g. ["bitcoin"] → ["BTC"]. */
+/** Ticker symbols for CoinGecko ids, e.g. ["bitcoin"] → ["BTC"]. Used by the insight context. */
 export function symbolsFor(coinIds: string[]): string[] {
   return coinsFor(coinIds).map((coin) => coin.symbol);
 }

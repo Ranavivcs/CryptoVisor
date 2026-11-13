@@ -6,7 +6,7 @@ import { TextField } from '../components/ui/TextField';
 import { useLogin } from '../hooks/useAuth';
 import { formErrors } from '../lib/errors';
 
-/** Login page. On success the route guards redirect to onboarding or the dashboard. */
+/** /login (App.tsx, behind GuestOnly). On success the route guards redirect to onboarding or the dashboard. */
 export function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

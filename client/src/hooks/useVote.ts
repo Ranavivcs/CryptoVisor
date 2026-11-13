@@ -19,12 +19,19 @@ export interface VoteState {
  * (the server must know about the 👎 first, or it could send the same meme back).
  *
  * The state lives in the row or card that owns the thumbs, so a vote re-renders only that part,
- * not the whole dashboard.
+ * not the whole dashboard. Used by every section's row/card (CoinRow, NewsRow, InsightBody, MemeBody),
+ * which spread the result into <VoteButtons>.
  */
 export function useVote(request: VoteRequest, initialVote: Vote, onSaved?: (vote: Vote) => void): VoteState {
   const [vote, setVote] = useState<Vote>(initialVote);
-  const mutation = useMutation({ mutationFn: (next: Vote) => sendVote(request, next) });
+  const mutation = useMutation({
+    mutationFn: (next: Vote) => sendVote(request, next),
+    // Same scope = React Query runs these one after another, so quick 👍-then-👎 clicks reach the
+    // server in click order and the stored vote matches the thumb on screen.
+    scope: { id: `vote:${request.section}:${request.itemId}` },
+  });
 
+  /** A thumb was clicked: switch optimistically, save, and roll back if the save fails. Called by VoteButtons. */
   function cast(clicked: 1 | -1) {
     const previous = vote;
     const next: Vote = previous === clicked ? 0 : clicked;

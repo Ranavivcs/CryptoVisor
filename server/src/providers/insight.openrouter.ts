@@ -34,12 +34,13 @@ const SYSTEM_PROMPT =
   'Write 2-3 sentences, under 80 words, plain text, no markdown, no greeting. ' +
   'Be specific to their coins and style. Never promise returns. Do not tell them to buy or sell.';
 
+/** One coin as prompt text: "SOL $100 (+9.5% 24h)". Used by `buildInsightPrompt`. */
 function formatMarket(m: CoinMarket): string {
   const sign = m.change24hPct >= 0 ? '+' : '';
   return `${m.symbol} $${m.priceUsd.toLocaleString('en-US')} (${sign}${m.change24hPct.toFixed(1)}% 24h)`;
 }
 
-/** The user message sent to the LLM. Exported so it can be stored and tested. */
+/** The user message sent to the LLM; stored with each insight (DailyInsight.prompt). Used by `generateInsight`. */
 export function buildInsightPrompt(ctx: InsightContext): string {
   const marketLine = ctx.markets.length > 0 ? ctx.markets.map(formatMarket).join('; ') : ctx.symbols.join(', ');
   return [
@@ -52,7 +53,8 @@ export function buildInsightPrompt(ctx: InsightContext): string {
 
 /**
  * A rule-based insight used when the LLM is unavailable. It's still personalised:
- * it names the biggest mover among the user's coins.
+ * it names the biggest mover among the user's coins, plus a sentence for their investor type.
+ * Used by `generateInsight` when there's no key or the LLM call fails.
  */
 export function fallbackInsight(ctx: InsightContext): string {
   const mover = [...ctx.markets].sort((a, b) => Math.abs(b.change24hPct) - Math.abs(a.change24hPct))[0];
@@ -65,7 +67,7 @@ export function fallbackInsight(ctx: InsightContext): string {
 /**
  * Asks a free OpenRouter model for today's insight. `models` lets OpenRouter fall through to the
  * next free model if one is down or rate-limited. Without an API key, or on any failure,
- * returns the rule-based fallback.
+ * returns the rule-based fallback. Called by `getInsightSection` (dashboard.service.ts).
  */
 export async function generateInsight(ctx: InsightContext): Promise<Sourced<GeneratedInsight>> {
   const prompt = buildInsightPrompt(ctx);

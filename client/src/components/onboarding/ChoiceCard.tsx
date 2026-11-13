@@ -9,7 +9,7 @@ interface ChoiceCardProps {
 
 /**
  * One selectable answer in the quiz. It's a toggle button (`aria-pressed`), so it works with
- * the keyboard and screen readers for both single- and multi-select questions.
+ * the keyboard and screen readers for both single- and multi-select questions. Used by the steps in quizSteps.tsx.
  */
 export function ChoiceCard({ label, description, badge, selected, onClick }: ChoiceCardProps) {
   return (

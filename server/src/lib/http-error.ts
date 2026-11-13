@@ -5,6 +5,7 @@
 export class HttpError extends Error {
   readonly status: number;
 
+  /**  status the HTTP status to answer with, e.g. 401 or 409. */
   constructor(status: number, message: string) {
     super(message);
     this.name = 'HttpError';

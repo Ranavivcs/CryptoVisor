@@ -8,7 +8,7 @@ interface TextFieldProps extends InputHTMLAttributes<HTMLInputElement> {
   suffix?: ReactNode;
 }
 
-/** A labelled input with an inline error message, wired up for screen readers. */
+/** A labelled input with an inline error message, wired up for screen readers. Used by LoginPage, SignupPage and PasswordField. */
 export function TextField({ label, errors, suffix, ...inputProps }: TextFieldProps) {
   const id = useId();
   const error = errors?.[0];

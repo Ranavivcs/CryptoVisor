@@ -5,7 +5,7 @@ import { signOutLocally } from '../hooks/useAuth';
 /**
  * The app's React Query client. Any request that comes back 401 (the session expired, or the
  * cookie was cleared) signs the user out locally, so the guard sends them to /login instead of
- * leaving every card showing "Not signed in".
+ * leaving every card showing "Not signed in". Created once in main.tsx.
  */
 export function createQueryClient() {
   const handleError = (error: Error) => {

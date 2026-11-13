@@ -4,7 +4,7 @@ interface StepProgressProps {
   total: number;
 }
 
-/** "Step 2 of 3" plus a progress bar. */
+/** "Step 2 of 3" plus a progress bar. Used by Quiz. */
 export function StepProgress({ current, total }: StepProgressProps) {
   return (
     <div className="space-y-2">

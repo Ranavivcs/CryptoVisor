@@ -6,6 +6,7 @@ export class ApiError extends Error {
   readonly status: number;
   readonly fieldErrors: FieldErrors;
 
+  /** Built by `apiFetch` from the server's `{ error, details }` reply. */
   constructor(status: number, message: string, fieldErrors: FieldErrors = {}) {
     super(message);
     this.name = 'ApiError';
@@ -22,6 +23,7 @@ interface RequestOptions {
 /**
  * The only place the client talks HTTP. Calls `/api/...` on the same origin
  * (the auth cookie is sent automatically), parses JSON, and throws ApiError on failure.
+ * Used by every function in src/api (auth, preferences, dashboard).
  */
 export async function apiFetch<T>(path: string, { method = 'GET', body }: RequestOptions = {}): Promise<T> {
   const res = await fetch(`/api${path}`, {

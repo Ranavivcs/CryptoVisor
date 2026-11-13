@@ -6,7 +6,7 @@ interface SparklineProps {
   height?: number;
 }
 
-/** A tiny 7-day price line drawn as one SVG polyline. Decorative, so hidden from screen readers. */
+/** A tiny 7-day price line drawn as one SVG polyline. Decorative, so hidden from screen readers. Used by CoinRow. */
 export function Sparkline({ values, positive, width = 96, height = 32 }: SparklineProps) {
   if (values.length < 2) return null;
   const min = Math.min(...values);

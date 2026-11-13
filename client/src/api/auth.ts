@@ -17,7 +17,7 @@ export interface RegisterInput extends LoginInput {
   name: string;
 }
 
-/** The signed-in user, or null when there is no valid session. */
+/** GET /api/auth/me: the signed-in user, or null when there is no valid session. Used by useMe. */
 export async function fetchMe(): Promise<User | null> {
   try {
     const { user } = await apiFetch<{ user: User }>('/auth/me');
@@ -28,16 +28,19 @@ export async function fetchMe(): Promise<User | null> {
   }
 }
 
+/** POST /api/auth/login. The server sets the session cookie. Used by useLogin. */
 export async function login(input: LoginInput): Promise<User> {
   const { user } = await apiFetch<{ user: User }>('/auth/login', { method: 'POST', body: input });
   return user;
 }
 
+/** POST /api/auth/register: creates the account and signs it in. Used by useRegister. */
 export async function register(input: RegisterInput): Promise<User> {
   const { user } = await apiFetch<{ user: User }>('/auth/register', { method: 'POST', body: input });
   return user;
 }
 
+/** POST /api/auth/logout: the server clears the cookie. Used by useLogout. */
 export function logout(): Promise<void> {
   return apiFetch<void>('/auth/logout', { method: 'POST' });
 }

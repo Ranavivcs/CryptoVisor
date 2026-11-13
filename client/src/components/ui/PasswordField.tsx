@@ -6,7 +6,7 @@ type PasswordFieldProps = Omit<ComponentProps<typeof TextField>, 'type' | 'suffi
 /**
  * A password input with a Show/Hide button, so users can check what they typed (fewer failed
  * logins, especially on phones). It's a toggle button (`aria-pressed`), and type="button" so it
- * never submits the form.
+ * never submits the form. Used by LoginPage and SignupPage.
  */
 export function PasswordField(props: PasswordFieldProps) {
   const [visible, setVisible] = useState(false);

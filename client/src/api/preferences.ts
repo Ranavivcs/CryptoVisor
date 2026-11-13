@@ -32,16 +32,18 @@ export interface Preferences extends PreferencesInput {
   updatedAt: string;
 }
 
+/** GET /api/preferences/options: the quiz choices. Used by usePreferenceOptions. */
 export function fetchPreferenceOptions(): Promise<PreferenceOptions> {
   return apiFetch<PreferenceOptions>('/preferences/options');
 }
 
-/** The saved answers, or null before onboarding. */
+/** GET /api/preferences: the saved answers, or null before onboarding. Used by usePreferences. */
 export async function fetchPreferences(): Promise<Preferences | null> {
   const { preferences } = await apiFetch<{ preferences: Preferences | null }>('/preferences');
   return preferences;
 }
 
+/** PUT /api/preferences: saves all quiz answers at once. Used by useSavePreferences. */
 export async function savePreferences(input: PreferencesInput): Promise<Preferences> {
   const { preferences } = await apiFetch<{ preferences: Preferences }>('/preferences', { method: 'PUT', body: input });
   return preferences;

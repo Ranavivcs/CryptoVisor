@@ -25,6 +25,7 @@ const API_URL = 'https://meme-api.com/gimme/cryptocurrencymemes/30';
 const IMAGE_URL = /\.(png|jpe?g|gif|webp)$/i;
 const cache = new TtlCache<Meme[]>(30 * 60_000);
 
+/** meme-api.com post → our Meme type (the id comes from the Reddit post id). Used by `loadRedditMemes`. */
 function toMeme(post: MemeApiPost): Meme {
   return {
     id: `reddit-${post.postLink.split('/').pop()}`,
@@ -35,6 +36,7 @@ function toMeme(post: MemeApiPost): Meme {
   };
 }
 
+/** Fetches 30 recent posts and keeps the safe image ones; throws if none are usable. Cached by `getMeme`. */
 async function loadRedditMemes(): Promise<Meme[]> {
   const { memes } = await fetchJson<{ memes: MemeApiPost[] }>(API_URL);
   // Keep the dashboard work-safe: skip NSFW and spoiler posts, and anything that isn't an image.
@@ -43,7 +45,7 @@ async function loadRedditMemes(): Promise<Meme[]> {
   return usable;
 }
 
-/** Random pick that avoids `excludeIds` when possible. `random` is injectable for tests. */
+/** Random pick that avoids `excludeIds` when possible. `random` is injectable for tests. Used by `getMeme`. */
 export function pickMeme(memes: Meme[], excludeIds: Set<string>, random = Math.random): Meme {
   const candidates = memes.filter((meme) => !excludeIds.has(meme.id));
   const pool = candidates.length > 0 ? candidates : memes;
@@ -52,7 +54,7 @@ export function pickMeme(memes: Meme[], excludeIds: Set<string>, random = Math.r
 
 /**
  * A random crypto meme, different on each call. Skips memes the user voted down
- * (`excludeIds`), which is the simplest use of their feedback.
+ * (`excludeIds`), which is the simplest use of their feedback. Called by `getMemeSection` (dashboard.service.ts).
  */
 export async function getMeme(excludeIds: Set<string>): Promise<Sourced<Meme>> {
   try {

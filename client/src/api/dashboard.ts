@@ -64,11 +64,14 @@ export interface MemeSection {
   meme: Meme;
 }
 
+/** GET /api/dashboard/prices. Used by usePrices. */
 export const fetchPrices = () => apiFetch<PricesSection>('/dashboard/prices');
+/** GET /api/dashboard/news. Used by useNews. */
 export const fetchNews = () => apiFetch<NewsSection>('/dashboard/news');
-/** `timeZone` tells the server which calendar day "today" is for this user. */
+/** GET /api/dashboard/insight. `timeZone` tells the server which calendar day "today" is for this user. Used by useInsight. */
 export const fetchInsight = (timeZone: string) =>
   apiFetch<InsightSection>(`/dashboard/insight?${new URLSearchParams({ tz: timeZone })}`);
+/** GET /api/dashboard/meme: a new random meme on every call. Used by useMeme. */
 export const fetchMeme = () => apiFetch<MemeSection>('/dashboard/meme');
 
 export interface VoteRequest {
@@ -78,7 +81,7 @@ export interface VoteRequest {
   content: Record<string, unknown>;
 }
 
-/** Sets a vote (1 or -1), or removes it (0). */
+/** PUT /api/feedback to set a vote (1 or -1), or DELETE to remove it (0). Used by useVote. */
 export function sendVote({ section, itemId, content }: VoteRequest, vote: Vote): Promise<unknown> {
   if (vote === 0) {
     return apiFetch(`/feedback/${section}/${encodeURIComponent(itemId)}`, { method: 'DELETE' });

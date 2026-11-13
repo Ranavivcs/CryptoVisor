@@ -1,6 +1,7 @@
 import type { UseQueryResult } from '@tanstack/react-query';
 import { useId, type ReactNode } from 'react';
 import type { DataSource } from '../../api/dashboard';
+import { ErrorBoundary } from '../ErrorBoundary';
 
 interface SectionCardProps<T extends { source: DataSource }> {
   title: string;
@@ -12,13 +13,37 @@ interface SectionCardProps<T extends { source: DataSource }> {
 }
 
 /**
+ * Calls a section's render function as its own component. Calling `children(data)` directly in
+ * SectionCard would run it while SectionCard renders, outside the ErrorBoundary, so an error there
+ * would still blank the page. (A test caught exactly that.)
+ */
+function Content({ render }: { render: () => ReactNode }) {
+  return render();
+}
+
+/** An error line with a "Try again" button. Used for a failed request and for a render error. */
+function ErrorMessage({ message, onRetry }: { message: string; onRetry: () => void }) {
+  return (
+    <div className="space-y-2 text-sm">
+      <p className="text-rose-300">{message}</p>
+      <button type="button" onClick={onRetry} className="font-medium text-amber-400 hover:underline">
+        Try again
+      </button>
+    </div>
+  );
+}
+
+/**
  * The shell shared by all four dashboard sections: header, loading skeleton, error with retry,
  * and a "Sample" badge when the section is showing its fallback instead of live data.
  * The body scrolls on its own when the card has a fixed height (the one-screen desktop layout).
+ * Used by all four section components (Prices, News, Insight, Meme): a render-props shell, so each
+ * section only describes its own content.
  */
 export function SectionCard<T extends { source: DataSource }>({ title, query, actions, className = '', children }: SectionCardProps<T>) {
   // useId, not the title: ids can't contain spaces, and aria-labelledby reads spaces as a list of ids.
   const headingId = useId();
+  const data = query.data; // a local, so TypeScript keeps "defined" inside the render callback below
   return (
     <section
       aria-labelledby={headingId}
@@ -50,16 +75,23 @@ export function SectionCard<T extends { source: DataSource }>({ title, query, ac
           </div>
         )}
 
-        {query.isError && (
-          <div className="space-y-2 text-sm">
-            <p className="text-rose-300">{query.error.message}</p>
-            <button type="button" onClick={() => query.refetch()} className="font-medium text-amber-400 hover:underline">
-              Try again
-            </button>
-          </div>
-        )}
+        {query.isError && <ErrorMessage message={query.error.message} onRetry={() => query.refetch()} />}
 
-        {query.data && children(query.data)}
+        {data !== undefined && (
+          <ErrorBoundary
+            fallback={(reset) => (
+              <ErrorMessage
+                message="Something went wrong showing this section."
+                onRetry={() => {
+                  reset();
+                  void query.refetch();
+                }}
+              />
+            )}
+          >
+            <Content render={() => children(data)} />
+          </ErrorBoundary>
+        )}
       </div>
     </section>
   );
