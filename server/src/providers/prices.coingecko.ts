@@ -37,11 +37,15 @@ const TOP_N = 100;
  */
 const cache = new TtlCache<CoinMarket[]>(60_000);
 
-/** Keeps every n-th value so a 168-point series becomes about `points` long. */
+/**
+ * Picks `points` evenly spaced values, always keeping the first and the last. So the thinned
+ * series still spans the whole 7 days and ends at the latest price, which lets the client's
+ * chart work out each point's time from the span alone.
+ */
 export function thin(values: number[], points: number): number[] {
   if (values.length <= points) return values;
-  const step = values.length / points;
-  return Array.from({ length: points }, (_, i) => values[Math.floor(i * step)]);
+  const step = (values.length - 1) / (points - 1);
+  return Array.from({ length: points }, (_, i) => values[Math.round(i * step)]);
 }
 
 function toCoinMarket(raw: CoinGeckoMarket): CoinMarket {

@@ -118,6 +118,11 @@ ORDER BY "createdAt" DESC
 LIMIT 5;
 ```
 
+## What I'd add for production
+
+- **Chart ranges (24h / 7d / 30d)** from CoinGecko's `/coins/{id}/market_chart`, cached per coin and range, with a paid
+  API key: the free tier allows only a few calls a minute (decision 41).
+
 ## Docs
 
 - [Decision log](docs/DECISIONS.md)

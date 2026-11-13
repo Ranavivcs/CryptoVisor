@@ -222,3 +222,13 @@ Neon checks password strength before creating a role, so a weak or placeholder p
 Two lessons on secrets: my first password was visible in a screenshot I shared, so we reset it, and the final one was
 generated into a PowerShell variable and copied to the clipboard, so it never appeared on screen. The connection string
 goes in the submission email only, never in the repo. The README's Database section lists the tables and example queries.
+
+**Coin charts.** I asked whether we could add graphs to the coins. The AI pointed out that every row already had a
+small 7-day sparkline, but it's hidden in the narrow laptop column, so I'd never seen it. It offered two options: an
+expandable chart from the data we already have (no new API calls), or 24h/7d/30d ranges from a new CoinGecko endpoint
+(about twice the work, with rate-limit risk on the free tier two days before the deadline). I chose the expandable chart
+(decision 41). Checking it in the browser found two things the tests hadn't: fast key presses all started from the same
+point (fixed with a functional state update, now tested), and the last point was labelled "Now" although it's
+CoinGecko's latest hourly sample, which differs slightly from the live price, so it now says "Latest hourly".
+While checking the live site, the AI also noticed that a new client talking to a not-yet-redeployed API would receive
+prices without `lastUpdated`, and formatting that would crash the page. The "as of" line is now guarded.

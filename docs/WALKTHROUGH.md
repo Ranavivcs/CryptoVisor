@@ -31,7 +31,7 @@ One line per file: what it does. Read top to bottom to follow a request from the
 | `src/lib/cache.ts` | `TtlCache`: cache-aside with a TTL; concurrent misses share one load; serves the stale value if a reload fails |
 | `src/lib/http.ts` | `fetchJson` / `fetchText`: external HTTP calls with a timeout; throw on non-2xx |
 | `src/providers/types.ts` | `Sourced<T>` = `{ source: 'live' \| 'fallback', data }` |
-| `src/providers/prices.coingecko.ts` | One cached top-100 CoinGecko call feeds `getCoinMarkets` (the user's coins) and `getTopMovers`; sparkline thinned to 42 points |
+| `src/providers/prices.coingecko.ts` | One cached top-100 CoinGecko call feeds `getCoinMarkets` (the user's coins) and `getTopMovers`; sparkline thinned to 42 evenly spaced points that keep the first and last, so the series ends at the latest price |
 | `src/providers/news.ts` | News orchestrator: tries CryptoPanic (if keyed) → RSS → `data/news.json`; tags and ranks stories by the user's coins |
 | `src/providers/news.cryptopanic.ts` | CryptoPanic adapter: posts → `NewsItem` (needs a paid key) |
 | `src/providers/news.rss.ts` | RSS adapter: the feed list (Cointelegraph, CoinDesk, Decrypt), XML parsing with `fast-xml-parser`, tracking parameters stripped |
@@ -72,7 +72,9 @@ One line per file: what it does. Read top to bottom to follow a request from the
 | `src/components/dashboard/{Insight,Prices,News,Meme}Section.tsx` | The four sections; each renders its data inside a `SectionCard` |
 | `src/components/dashboard/VoteButtons.tsx` | 👍/👎 plus a fading "Saved" hint; presentational, fed by `useVote` |
 | `src/components/dashboard/Sparkline.tsx` | 7-day price line as one SVG polyline |
+| `src/components/dashboard/PriceChart.tsx` | The expanded 7-day chart: hand-drawn SVG, hover/drag readout, 7d change/high/low; a keyboard slider for accessibility (decision 41) |
+| `src/lib/chart.ts` | `chartStats` (low, high, change) and `pointTime` (when each sparkline point was recorded) |
 | `src/lib/sectionOrder.ts` | Content preferences → order of the sections |
-| `src/lib/format.ts` | Money, percent and "3 hours ago" formatting |
+| `src/lib/format.ts` | Money, percent, "3 hours ago", clock time and the dashboard date |
 | `src/pages/DashboardPage.tsx` | Header, plus the sections in preference order |
 | `src/pages/*` | One component per screen |
