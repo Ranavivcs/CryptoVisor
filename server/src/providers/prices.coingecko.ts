@@ -70,9 +70,34 @@ async function fetchMarkets(params: Record<string, string>): Promise<CoinMarket[
   return raw.map(toCoinMarket);
 }
 
-/** The top 100 coins by market cap, cached for a minute. Shared by `getCoinMarkets` and `getTopMovers`. */
+const RETRY_DELAY_MS = 3_000;
+
+/**
+ * The top 100 coins by market cap, cached for a minute. One retry after a short wait, because the
+ * free API often answers a burst with 429 and is fine a few seconds later. Shared by
+ * `getCoinMarkets`, `getTopMovers` and `startPriceWarmer`.
+ */
 function getTopMarkets(): Promise<CoinMarket[]> {
-  return cache.getOrLoad('top', () => fetchMarkets({ order: 'market_cap_desc', per_page: String(TOP_N), page: '1' }));
+  const load = () => fetchMarkets({ order: 'market_cap_desc', per_page: String(TOP_N), page: '1' });
+  return cache.getOrLoad('top', () =>
+    load().catch(async (err: Error) => {
+      console.warn('Prices: CoinGecko failed, retrying once.', err.message);
+      await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
+      return load();
+    }),
+  );
+}
+
+/**
+ * Loads the top-100 snapshot when the server starts and then every minute, so users almost always
+ * hit a warm cache: no waiting on CoinGecko, and no error card if CoinGecko is briefly rate-limiting
+ * (the last good snapshot is served instead). One call a minute is well within the free limits.
+ * Called once by index.ts (not by tests). `unref` lets the process exit normally.
+ */
+export function startPriceWarmer(intervalMs = 60_000) {
+  const warm = () => getTopMarkets().catch((err: Error) => console.warn('Prices: warm-up failed.', err.message));
+  void warm();
+  setInterval(warm, intervalMs).unref();
 }
 
 /**

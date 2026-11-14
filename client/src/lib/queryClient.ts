@@ -17,8 +17,10 @@ export function createQueryClient() {
     defaultOptions: {
       queries: {
         refetchOnWindowFocus: false,
-        // A 401 won't fix itself on retry; other errors (network blips) get the default retries.
-        retry: (failureCount, error) => !(error instanceof ApiError && error.status === 401) && failureCount < 3,
+        // A 401 won't fix itself on retry. Other errors (a server waking up, a rate-limited price API)
+        // usually clear within seconds: 5 retries with the default backoff (1, 2, 4, 8, 16s) keep the
+        // loading skeleton up for about 30s before showing an error.
+        retry: (failureCount, error) => !(error instanceof ApiError && error.status === 401) && failureCount < 5,
       },
     },
   });
