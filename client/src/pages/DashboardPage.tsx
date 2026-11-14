@@ -4,19 +4,33 @@ import { InsightSection } from '../components/dashboard/InsightSection';
 import { MemeSection } from '../components/dashboard/MemeSection';
 import { NewsSection } from '../components/dashboard/NewsSection';
 import { PricesSection } from '../components/dashboard/PricesSection';
+import type { SectionProps } from '../components/dashboard/SectionCard';
 import { Button } from '../components/ui/Button';
 import { useLogout, useMe } from '../hooks/useAuth';
+import { useCollapsedSections } from '../hooks/useCollapsedSections';
 import { usePreferences } from '../hooks/usePreferences';
 import { useToday } from '../hooks/useToday';
 import { formatDay } from '../lib/format';
 import { sectionOrder, type DashboardSection } from '../lib/sectionOrder';
 
-const SECTIONS: Record<DashboardSection, ComponentType<{ className?: string }>> = {
+const SECTIONS: Record<DashboardSection, ComponentType<SectionProps>> = {
   insight: InsightSection,
   prices: PricesSection,
   news: NewsSection,
   meme: MemeSection,
 };
+
+/** Desktop column span for each open section, by how many are open (full class names, so Tailwind finds them). */
+const OPEN_SPAN: Record<number, string> = { 1: 'lg:col-span-6', 2: 'lg:col-span-3', 3: 'lg:col-span-2' };
+
+/**
+ * Desktop grid rows: the insight strip, then the open sections filling the screen, then a row of
+ * collapsed bars. With nothing open, rows just stack at the top. Used by DashboardPage.
+ */
+function rowsClass(hasOpen: boolean, hasFolded: boolean): string {
+  if (!hasOpen) return 'lg:content-start';
+  return hasFolded ? 'lg:grid-rows-[auto_minmax(0,1fr)_auto]' : 'lg:grid-rows-[auto_minmax(0,1fr)]';
+}
 
 /** "Good morning/afternoon/evening" for the header, from the local hour. */
 function greeting(hour = new Date().getHours()): string {
@@ -27,7 +41,8 @@ function greeting(hour = new Date().getHours()): string {
 
 /**
  * The daily dashboard. Each section fetches its own data, so a slow or failing source
- * affects one card, not the page. The order follows the user's content preferences.
+ * affects one card, not the page. The order follows the user's content preferences, and
+ * any section can be collapsed (remembered per user, see useCollapsedSections).
  * Route "/" in App.tsx, behind RequireAuth.
  */
 export function DashboardPage() {
@@ -36,7 +51,16 @@ export function DashboardPage() {
   const logoutMutation = useLogout();
   // The same date the insight is keyed on, so the date line and the insight switch together at midnight.
   const today = useToday();
-  const order = sectionOrder(preferences?.contentTypes ?? []);
+  const { collapsed, toggle } = useCollapsedSections(user?.id);
+  const [first, ...rest] = sectionOrder(preferences?.contentTypes ?? []);
+  const open = rest.filter((name) => !collapsed.has(name));
+  const folded = rest.filter((name) => collapsed.has(name));
+
+  /** One section card with its collapse toggle. */
+  const renderSection = (name: DashboardSection, className: string) => {
+    const Section = SECTIONS[name];
+    return <Section key={name} className={className} collapsed={collapsed.has(name)} onToggleCollapse={() => toggle(name)} />;
+  };
 
   return (
     // Desktop: the page is exactly one screen tall and each card scrolls inside itself.
@@ -63,13 +87,13 @@ export function DashboardPage() {
 
       {/*
         grid-cols-1 = minmax(0, 1fr): without it, a wide meme image stretches the column past the screen.
-        Desktop: the insight is a full-width strip (auto height), the other three share the rest of the screen.
+        Desktop (6 columns): the insight is a full-width strip, the open sections share the middle row
+        evenly, and collapsed ones sit as slim bars in a last row.
       */}
-      <div className="grid grid-cols-1 gap-5 lg:min-h-0 lg:flex-1 lg:grid-cols-3 lg:grid-rows-[auto_minmax(0,1fr)]">
-        {order.map((name, index) => {
-          const Section = SECTIONS[name];
-          return <Section key={name} className={index === 0 ? 'lg:col-span-3' : 'max-h-[36rem] lg:max-h-none'} />;
-        })}
+      <div className={`grid grid-cols-1 gap-5 lg:min-h-0 lg:flex-1 lg:grid-cols-6 ${rowsClass(open.length > 0, folded.length > 0)}`}>
+        {renderSection(first, 'lg:col-span-6')}
+        {open.map((name) => renderSection(name, `max-h-[36rem] lg:max-h-none ${OPEN_SPAN[open.length]}`))}
+        {folded.map((name) => renderSection(name, 'lg:col-span-2'))}
       </div>
 
       <p className="mt-4 shrink-0 text-center text-xs text-slate-500">

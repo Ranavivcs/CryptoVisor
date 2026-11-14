@@ -3,13 +3,46 @@ import { useId, type ReactNode } from 'react';
 import type { DataSource } from '../../api/dashboard';
 import { ErrorBoundary } from '../ErrorBoundary';
 
-interface SectionCardProps<T extends { source: DataSource }> {
+/** What DashboardPage passes to every section component, which hands it on to SectionCard. */
+export interface SectionProps {
+  className?: string;
+  /** Collapsed: only the header shows. The data still loads, so expanding is instant. */
+  collapsed?: boolean;
+  /** Shows the collapse/expand button when given. */
+  onToggleCollapse?: () => void;
+}
+
+interface SectionCardProps<T extends { source: DataSource }> extends SectionProps {
   title: string;
   query: UseQueryResult<T>;
-  /** Extra header controls, e.g. a refresh button. */
+  /** Extra header controls, e.g. a refresh button. Hidden while collapsed. */
   actions?: ReactNode;
-  className?: string;
   children: (data: T) => ReactNode;
+}
+
+/** A chevron that points down when the card is open and right when it's collapsed. Drawn by CollapseButton. */
+function Chevron({ collapsed }: { collapsed: boolean }) {
+  return (
+    <svg viewBox="0 0 24 24" className={`h-4 w-4 transition-transform ${collapsed ? '-rotate-90' : ''}`} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="m6 9 6 6 6-6" />
+    </svg>
+  );
+}
+
+/** The header button that folds a card away or opens it again (`aria-expanded`). Used by SectionCard. */
+function CollapseButton({ title, collapsed, onToggle }: { title: string; collapsed: boolean; onToggle: () => void }) {
+  return (
+    <button
+      type="button"
+      aria-expanded={!collapsed}
+      aria-label={`${collapsed ? 'Expand' : 'Collapse'} ${title}`}
+      title={collapsed ? 'Show' : 'Hide'}
+      onClick={onToggle}
+      className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-800 hover:text-slate-200"
+    >
+      <Chevron collapsed={collapsed} />
+    </button>
+  );
 }
 
 /**
@@ -40,16 +73,24 @@ function ErrorMessage({ message, onRetry }: { message: string; onRetry: () => vo
  * Used by all four section components (Prices, News, Insight, Meme): a render-props shell, so each
  * section only describes its own content.
  */
-export function SectionCard<T extends { source: DataSource }>({ title, query, actions, className = '', children }: SectionCardProps<T>) {
+export function SectionCard<T extends { source: DataSource }>({
+  title,
+  query,
+  actions,
+  className = '',
+  collapsed = false,
+  onToggleCollapse,
+  children,
+}: SectionCardProps<T>) {
   // useId, not the title: ids can't contain spaces, and aria-labelledby reads spaces as a list of ids.
   const headingId = useId();
   const data = query.data; // a local, so TypeScript keeps "defined" inside the render callback below
   return (
     <section
       aria-labelledby={headingId}
-      className={`flex min-h-0 min-w-0 flex-col rounded-2xl border border-slate-800 bg-gradient-to-b from-slate-900 to-slate-900/40 p-5 shadow-lg shadow-black/20 ${className}`}
+      className={`flex min-h-0 min-w-0 flex-col rounded-2xl border border-slate-800 bg-gradient-to-b from-slate-900 to-slate-900/40 shadow-lg shadow-black/20 ${collapsed ? 'px-5 py-3' : 'p-5'} ${className}`}
     >
-      <header className="mb-3 flex shrink-0 items-center justify-between gap-2 border-b border-slate-800 pb-3">
+      <header className={`flex shrink-0 items-center justify-between gap-2 ${collapsed ? '' : 'mb-3 border-b border-slate-800 pb-3'}`}>
         <h2 id={headingId} className="flex items-center gap-2 text-base font-semibold tracking-wide text-amber-300">
           <span aria-hidden className="h-4 w-1 rounded-full bg-amber-400" />
           {title}
@@ -62,11 +103,14 @@ export function SectionCard<T extends { source: DataSource }>({ title, query, ac
             </span>
           )}
         </h2>
-        {actions}
+        <div className="flex items-center gap-1">
+          {!collapsed && actions}
+          {onToggleCollapse && <CollapseButton title={title} collapsed={collapsed} onToggle={onToggleCollapse} />}
+        </div>
       </header>
 
       {/* @container: rows inside can adapt to the card's own width (e.g. hide the sparkline in a narrow column). */}
-      <div className="@container flex min-h-0 flex-1 flex-col overflow-y-auto pr-1">
+      <div className="@container flex min-h-0 flex-1 flex-col overflow-y-auto pr-1" hidden={collapsed}>
         {query.isPending && (
           <div className="space-y-3" role="status" aria-label={`Loading ${title}`}>
             <div className="h-4 w-3/4 animate-pulse rounded bg-slate-800" />

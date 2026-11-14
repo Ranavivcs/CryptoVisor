@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { Meme } from '../../api/dashboard';
 import { useMeme } from '../../hooks/useDashboard';
 import { useVote } from '../../hooks/useVote';
-import { SectionCard } from './SectionCard';
+import { SectionCard, type SectionProps } from './SectionCard';
 import { VoteButtons } from './VoteButtons';
 
 /** Reddit images sometimes fail to load (deleted posts, blocked hotlinks); try this many replacements. */
@@ -60,7 +60,7 @@ function MemeBody({ meme, onDisliked, onImageError, onImageLoad }: MemeBodyProps
  * fetched automatically (a few times at most, so a Reddit outage can't cause an endless loop).
  * Data from GET /api/dashboard/meme (useMeme). Rendered by DashboardPage.
  */
-export function MemeSection({ className }: { className?: string }) {
+export function MemeSection(props: SectionProps) {
   const query = useMeme();
   const [imageFailures, setImageFailures] = useState(0);
 
@@ -89,7 +89,7 @@ export function MemeSection({ className }: { className?: string }) {
   );
 
   return (
-    <SectionCard title="Memes" query={query} actions={anotherOne} className={className}>
+    <SectionCard title="Memes" query={query} actions={anotherOne} {...props}>
       {({ meme }) =>
         imageFailures >= MAX_IMAGE_RETRIES ? (
           <p className="text-sm text-slate-400">Couldn&apos;t load a meme image right now. Try &quot;Another one&quot; in a bit.</p>

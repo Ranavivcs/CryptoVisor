@@ -54,22 +54,24 @@ function ThumbButton({ kind, vote, cast, label }: { kind: keyof typeof THUMBS; v
  * MemeBody), so the parent can also react to the vote.
  */
 export function VoteButtons({ vote, cast, savedAt, isError, label }: VoteButtonsProps) {
+  // The hint sits absolutely under the thumbs, so it appearing never pushes the row's text aside.
+  const hint = 'pointer-events-none absolute right-0 top-full whitespace-nowrap text-[11px] leading-tight';
   return (
-    <div className="flex shrink-0 items-center gap-1.5">
+    <div className="relative flex shrink-0 items-center gap-1.5">
+      <ThumbButton kind="up" vote={vote} cast={cast} label={label} />
+      <ThumbButton kind="down" vote={vote} cast={cast} label={label} />
       {isError ? (
-        <span role="alert" className="text-xs text-rose-300">
+        <span role="alert" className={`${hint} text-rose-300`}>
           Not saved
         </span>
       ) : (
         savedAt !== null && (
           // key restarts the fade-out animation on each new save; no timer needed.
-          <span key={savedAt} role="status" className="animate-fade-out text-xs text-slate-400">
+          <span key={savedAt} role="status" className={`${hint} animate-fade-out text-slate-400`}>
             Saved
           </span>
         )
       )}
-      <ThumbButton kind="up" vote={vote} cast={cast} label={label} />
-      <ThumbButton kind="down" vote={vote} cast={cast} label={label} />
     </div>
   );
 }

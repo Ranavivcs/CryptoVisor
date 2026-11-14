@@ -2,7 +2,7 @@ import type { NewsItem } from '../../api/dashboard';
 import { useNews } from '../../hooks/useDashboard';
 import { useVote } from '../../hooks/useVote';
 import { timeAgo } from '../../lib/format';
-import { SectionCard } from './SectionCard';
+import { SectionCard, type SectionProps } from './SectionCard';
 import { VoteButtons } from './VoteButtons';
 
 /**
@@ -52,10 +52,10 @@ function NewsRow({ item }: { item: NewsItem }) {
  * The Market News card: headlines about the user's coins first, then general market news.
  * Data from GET /api/dashboard/news (useNews). Rendered by DashboardPage.
  */
-export function NewsSection({ className }: { className?: string }) {
+export function NewsSection(props: SectionProps) {
   const query = useNews();
   return (
-    <SectionCard title="Market News" query={query} className={className}>
+    <SectionCard title="Market News" query={query} {...props}>
       {({ items }) =>
         items.length === 0 ? (
           <p className="text-sm text-slate-400">No news for your coins right now.</p>
