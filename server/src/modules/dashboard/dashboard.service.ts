@@ -10,6 +10,7 @@ import type { DataSource } from '../../providers/types.js';
 import { getDownvotedIds, getMyVotes, type MyVote } from '../feedback/feedback.service.js';
 import { coinsFor, contentTypeLabel, investorTypeFocus, investorTypeLabel, investorTypeTipFor, symbolsFor } from '../preferences/preferences.catalog.js';
 import { requirePreferences, type Preferences } from '../preferences/preferences.service.js';
+import { verdictFor } from './verdict.js';
 
 /**
  * The four dashboard sections, one function each, called by dashboard.routes.ts.
@@ -81,10 +82,18 @@ function insightContextFor(preferences: Preferences, markets: CoinMarket[], head
   };
 }
 
-/** The response shape for one insight, with the user's vote. Used for all three paths of `getInsightSection`. */
-async function insightResponse(userId: string, source: DataSource, insight: { id: string; text: string; model: string }) {
+/**
+ * The response shape for one insight, with the user's vote and today's rule-based verdict
+ * (worked out from current prices on each load, not stored). Used for all three paths of `getInsightSection`.
+ */
+async function insightResponse(
+  userId: string,
+  source: DataSource,
+  insight: { id: string; text: string; model: string },
+  markets: CoinMarket[],
+) {
   const [withVote] = await withVotes(userId, 'INSIGHT', [{ id: insight.id, text: insight.text, model: insight.model }]);
-  return { source, insight: withVote };
+  return { source, insight: withVote, verdict: verdictFor(markets) };
 }
 
 /**
@@ -96,16 +105,14 @@ export async function getInsightSection(userId: string, timeZone = 'UTC') {
   const preferences = await requirePreferences(userId);
   const day = todayIn(timeZone);
 
+  // Prices are needed on every path, for the verdict (served from the shared one-minute cache).
+  const markets = await getCoinMarkets(preferences.assets).catch(() => []);
   const stored = await prisma.dailyInsight.findUnique({ where: { userId_day: { userId, day } } });
-  if (stored) return insightResponse(userId, 'live', stored);
+  if (stored) return insightResponse(userId, 'live', stored, markets);
 
-  const [markets, headlines] = await Promise.all([
-    getCoinMarkets(preferences.assets).catch(() => []),
-    headlinesFor(preferences.assets),
-  ]);
-  const generated = await generateInsight(insightContextFor(preferences, markets, headlines));
+  const generated = await generateInsight(insightContextFor(preferences, markets, await headlinesFor(preferences.assets)));
   if (generated.source === 'fallback') {
-    return insightResponse(userId, 'fallback', { id: `fallback-${dayKey(day)}`, ...generated.data });
+    return insightResponse(userId, 'fallback', { id: `fallback-${dayKey(day)}`, ...generated.data }, markets);
   }
 
   // upsert, not create: two tabs loading at once must not fail on the unique (userId, day) key.
@@ -114,7 +121,7 @@ export async function getInsightSection(userId: string, timeZone = 'UTC') {
     create: { userId, day, ...generated.data },
     update: {},
   });
-  return insightResponse(userId, 'live', saved);
+  return insightResponse(userId, 'live', saved, markets);
 }
 
 /** GET /api/dashboard/meme: a random meme, skipping ones the user voted down. */

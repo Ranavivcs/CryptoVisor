@@ -55,9 +55,18 @@ export interface NewsSection {
   source: DataSource;
   items: NewsItem[];
 }
+/** Today's rule-based verdict on the user's coins (server: modules/dashboard/verdict.ts). */
+export interface Verdict {
+  level: 'quiet' | 'watch' | 'big';
+  title: string;
+  advice: string;
+}
+
 export interface InsightSection {
   source: DataSource;
   insight: Insight;
+  /** Null when prices are unavailable. */
+  verdict: Verdict | null;
 }
 export interface MemeSection {
   source: DataSource;

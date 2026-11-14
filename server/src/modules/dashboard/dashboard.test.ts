@@ -223,6 +223,9 @@ describe('dashboard sections', () => {
       const agent = await onboardedAgent();
       const { body } = await agent.get('/api/dashboard/insight').expect(200);
       expect(body.insight.text).toBe('Takeaway.\nSOL: watch volume.');
+      // SOL is up 9.5% in the fake prices: the rule-based verdict calls it out.
+      expect(body.verdict).toMatchObject({ level: 'big', title: 'Big move' });
+      expect(body.verdict.advice).toContain('SOL is up 9.5% today');
       expect(prompt).toContain('Day Trader (cares about: short-term moves, charts and momentum)');
       expect(prompt).toContain("Today's headlines about their coins:\n- Solana DEX volume doubles\n- Bitcoin ETF flows");
       expect(prompt).not.toContain('Stablecoin rules'); // general news, not about their coins

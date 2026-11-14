@@ -33,39 +33,32 @@ interface ChatCompletion {
 }
 
 const API_URL = 'https://openrouter.ai/api/v1/chat/completions';
-/** How the closing advice line starts. The client highlights the line that starts with it. */
-export const BOTTOM_LINE = 'Bottom line:';
 /** How many coins get their own "worth watching" line, so the note stays short for big watchlists. */
 const MAX_COIN_LINES = 4;
+/**
+ * The model writes only observations (a takeaway and one line per coin). The advice under it is the
+ * rule-based verdict (modules/dashboard/verdict.ts): small free models gave vague or copied advice.
+ */
 const SYSTEM_PROMPT = [
-  'You are a concise crypto market analyst writing a daily note for one investor. Plain text, no markdown, no greeting, under 130 words.',
+  'You are a concise crypto market analyst writing a daily note for one investor. Plain text, no markdown, no greeting, under 100 words.',
   'Format exactly, with no labels or headings:',
-  'First line: one sentence, the single most useful takeaway for them today, linking the price moves to their investing style ' +
+  'First line: one sentence of at most 25 words, the single most useful takeaway for them today, linking the price moves to their investing style ' +
     '(and to a headline only if it clearly explains a move).',
   `Then one short line for each coin that matters most today (at most ${MAX_COIN_LINES}): the ticker, a colon, and what to keep an eye on.`,
-  `Last line: "${BOTTOM_LINE}" then the conclusion in plain words a beginner understands: what today's numbers mean for this ` +
-    'person, naming at least one of their coins and a number from the data, and one concrete thing they could do today ' +
-    '(for example: nothing, read a named headline, or look again tomorrow). One sentence, under 30 words. Never a trade instruction.',
-  'For traders the concrete thing is what to look at today (e.g. the coin moving most, or the headline behind it), not "nothing".',
   'Write plainly for everyone: no jargon such as "time horizon", "risk-off", "momentum", "support", "reversal" or "position".',
   "Match their style: the week's trend for long-term holders, today's move for traders, the simplest words for beginners.",
-  'Use only the numbers and headlines given. Never invent other numbers, price levels or events.',
+  'Use only the numbers and headlines given. Never mention price levels (like "$66k" or "$1,850"), predictions or events that are not in the data.',
   'Never promise returns. Do not tell them to buy or sell.',
-  '',
-  "Example of the shape only (made-up coins and numbers). Write your own words about their coins; never copy the example's sentences:",
-  'AAA fell 9% this week while BBB barely moved, so most of your drop comes from one coin.',
-  'AAA: whether the weekly fall slows down.',
-  'BBB: steady so far.',
-  `${BOTTOM_LINE} your AAA is down 9% this week, but you plan to hold for years, so there is nothing you need to do today.`,
+  'Output: the takeaway sentence, then the coin lines, each on its own line. Nothing else.',
 ].join('\n');
 
 /**
- * Puts each "TICKER: …" and the "Bottom line:" on its own line (models sometimes run them into one
- * paragraph), trims each line and drops blank ones, so the card shows a compact list. Used by `generateInsight`.
+ * Puts each "TICKER: …" on its own line (models sometimes run them into one paragraph), trims
+ * each line and drops blank ones, so the card shows a compact list. Used by `generateInsight`.
  */
 export const tidy = (text: string) =>
   text
-    .replace(/([.!?])\s+(?=[A-Z]{2,6}:|Bottom line:)/g, '$1\n')
+    .replace(/([.!?])\s+(?=[A-Z]{2,6}:)/g, '$1\n')
     .split('\n')
     .map((line) => line.trim())
     .filter(Boolean)
@@ -136,7 +129,7 @@ export async function generateInsight(ctx: InsightContext): Promise<Sourced<Gene
             { role: 'user', content: prompt },
           ],
           max_tokens: 400,
-          temperature: 0.7,
+          temperature: 0.3, // low: small models follow the format and the data more closely
           // Some free models "think" before answering and can spend the whole token budget on it,
           // returning no text. A 3-sentence note doesn't need reasoning.
           reasoning: { enabled: false },

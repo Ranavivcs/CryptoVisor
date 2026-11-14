@@ -51,7 +51,6 @@ describe('tidy', () => {
   it('puts each coin line on its own line and drops blank lines', () => {
     expect(tidy('Takeaway here. BTC: one thing. DOGE: another.')).toBe('Takeaway here.\nBTC: one thing.\nDOGE: another.');
     expect(tidy('  Takeaway.\n\n SOL: watch it.  ')).toBe('Takeaway.\nSOL: watch it.');
-    expect(tidy('SOL: watch it. Bottom line: stay patient.')).toBe('SOL: watch it.\nBottom line: stay patient.');
   });
 });
 
