@@ -8,7 +8,7 @@ import { getNews } from '../../providers/news.js';
 import { getCoinMarkets, getTopMovers, type CoinMarket } from '../../providers/prices.coingecko.js';
 import type { DataSource } from '../../providers/types.js';
 import { getDownvotedIds, getMyVotes, type MyVote } from '../feedback/feedback.service.js';
-import { coinsFor, contentTypeLabel, investorTypeLabel, investorTypeTipFor, symbolsFor } from '../preferences/preferences.catalog.js';
+import { coinsFor, contentTypeLabel, investorTypeFocus, investorTypeLabel, investorTypeTipFor, symbolsFor } from '../preferences/preferences.catalog.js';
 import { requirePreferences, type Preferences } from '../preferences/preferences.service.js';
 
 /**
@@ -51,14 +51,33 @@ export async function getNewsSection(userId: string) {
   return { source: news.source, items: await withVotes(userId, 'NEWS', news.data) };
 }
 
-/** Preferences + today's prices → what the LLM (or the rule-based fallback) needs. Used by `getInsightSection`. */
-function insightContextFor(preferences: Preferences, markets: CoinMarket[]): InsightContext {
+const INSIGHT_HEADLINES = 3;
+
+/**
+ * Up to three of today's live headlines about the user's coins, for the insight prompt. General
+ * stories and the built-in sample news are left out, so the model only sees real news about these coins.
+ * Never throws: the insight must not fail because news did. Used by `getInsightSection`.
+ */
+async function headlinesFor(assets: string[]): Promise<string[]> {
+  try {
+    const news = await getNews(coinsFor(assets));
+    if (news.source === 'fallback') return [];
+    return news.data.filter((item) => item.coins.length > 0).slice(0, INSIGHT_HEADLINES).map((item) => item.title);
+  } catch {
+    return [];
+  }
+}
+
+/** Preferences + today's prices and headlines → what the LLM (or the rule-based fallback) needs. Used by `getInsightSection`. */
+function insightContextFor(preferences: Preferences, markets: CoinMarket[], headlines: string[]): InsightContext {
   return {
     investorType: investorTypeLabel(preferences.investorType),
+    investorFocus: investorTypeFocus(preferences.investorType),
     investorTip: investorTypeTipFor(preferences.investorType),
     interests: preferences.contentTypes.map(contentTypeLabel),
     markets,
     symbols: symbolsFor(preferences.assets),
+    headlines,
   };
 }
 
@@ -80,8 +99,11 @@ export async function getInsightSection(userId: string, timeZone = 'UTC') {
   const stored = await prisma.dailyInsight.findUnique({ where: { userId_day: { userId, day } } });
   if (stored) return insightResponse(userId, 'live', stored);
 
-  const markets = await getCoinMarkets(preferences.assets).catch(() => []);
-  const generated = await generateInsight(insightContextFor(preferences, markets));
+  const [markets, headlines] = await Promise.all([
+    getCoinMarkets(preferences.assets).catch(() => []),
+    headlinesFor(preferences.assets),
+  ]);
+  const generated = await generateInsight(insightContextFor(preferences, markets, headlines));
   if (generated.source === 'fallback') {
     return insightResponse(userId, 'fallback', { id: `fallback-${dayKey(day)}`, ...generated.data });
   }

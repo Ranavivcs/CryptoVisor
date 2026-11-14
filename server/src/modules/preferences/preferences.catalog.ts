@@ -63,6 +63,9 @@ export const PREFERENCE_OPTIONS = {
 /** Human-readable label for an investor type, e.g. "Day Trader". Used to build the insight context (dashboard.service.ts). */
 export const investorTypeLabel = (type: InvestorType) => investorTypeText[type].label;
 
+/** What an investor type cares about, e.g. "Short-term moves, charts and momentum" (the quiz option's description). Used to build the insight context. */
+export const investorTypeFocus = (type: InvestorType) => investorTypeText[type].description;
+
 /**
  * One sentence per investor type for the rule-based insight (used when the LLM is unavailable).
  * Whole sentences, because the labels don't fit one template: "As a Just Starting…" isn't English.

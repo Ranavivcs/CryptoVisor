@@ -189,9 +189,11 @@ describe('dashboard sections', () => {
         [COINGECKO]: () => markets(),
         [OPENROUTER]: (_url, init) => {
           const body = JSON.parse(String(init?.body));
-          expect(body.messages[1].content).toContain('Investor type: Day Trader.');
+          expect(body.messages[1].content).toContain('Investor type: Day Trader (cares about');
           expect(body.reasoning).toEqual({ enabled: false });
-          expect(body.messages[1].content).toContain('SOL $100 (+9.5% 24h)');
+          expect(body.messages[1].content).toContain('SOL $100 (+9.5% 24h, +0.0% 7d)');
+          // Unfaked news feeds fail here, so the prompt has no headlines (and sample news isn't used instead).
+          expect(body.messages[1].content).not.toContain('headlines');
           return { model: 'google/gemma-test:free', choices: [{ message: { content: 'SOL is leading today.' } }] };
         },
       });
@@ -206,6 +208,24 @@ describe('dashboard sections', () => {
 
       const stored = await prisma.dailyInsight.findFirstOrThrow();
       expect(stored.prompt).toContain('Day Trader');
+    });
+
+    it("gives the LLM the investor's focus and today's headlines about their coins only", async () => {
+      let prompt = '';
+      fakeExternalApis({
+        [COINGECKO]: () => markets(),
+        [COINTELEGRAPH]: () => rssFeed(['Solana DEX volume doubles', 'Stablecoin rules', 'Bitcoin ETF flows']),
+        [OPENROUTER]: (_url, init) => {
+          prompt = JSON.parse(String(init?.body)).messages[1].content;
+          return { model: 'm:free', choices: [{ message: { content: 'Takeaway.\nSOL: watch volume.' } }] };
+        },
+      });
+      const agent = await onboardedAgent();
+      const { body } = await agent.get('/api/dashboard/insight').expect(200);
+      expect(body.insight.text).toBe('Takeaway.\nSOL: watch volume.');
+      expect(prompt).toContain('Day Trader (cares about: short-term moves, charts and momentum)');
+      expect(prompt).toContain("Today's headlines about their coins:\n- Solana DEX volume doubles\n- Bitcoin ETF flows");
+      expect(prompt).not.toContain('Stablecoin rules'); // general news, not about their coins
     });
 
     it('uses a personalised fallback when the LLM fails, and does not store it', async () => {

@@ -6,6 +6,8 @@ import type { Sourced } from './types.js';
 export interface InsightContext {
   /** Investor type label, e.g. "Day Trader". */
   investorType: string;
+  /** What that investor type cares about, e.g. "Short-term moves, charts and momentum". */
+  investorFocus: string;
   /** A sentence of advice for that investor type, used by the rule-based fallback. */
   investorTip: string;
   /** Content type labels, e.g. ["Market News", "Fun"]. */
@@ -14,6 +16,8 @@ export interface InsightContext {
   markets: CoinMarket[];
   /** Symbols the user picked, used when market data is missing. */
   symbols: string[];
+  /** Today's live headlines about the user's coins (a few at most); empty if there are none. */
+  headlines: string[];
 }
 
 export interface GeneratedInsight {
@@ -29,25 +33,71 @@ interface ChatCompletion {
 }
 
 const API_URL = 'https://openrouter.ai/api/v1/chat/completions';
-const SYSTEM_PROMPT =
-  'You are a friendly, concise crypto market analyst writing a daily note for one investor. ' +
-  'Write 2-3 sentences, under 80 words, plain text, no markdown, no greeting. ' +
-  'Be specific to their coins and style. Never promise returns. Do not tell them to buy or sell.';
+/** How the closing advice line starts. The client highlights the line that starts with it. */
+export const BOTTOM_LINE = 'Bottom line:';
+/** How many coins get their own "worth watching" line, so the note stays short for big watchlists. */
+const MAX_COIN_LINES = 4;
+const SYSTEM_PROMPT = [
+  'You are a concise crypto market analyst writing a daily note for one investor. Plain text, no markdown, no greeting, under 130 words.',
+  'Format exactly, with no labels or headings:',
+  'First line: one sentence, the single most useful takeaway for them today, linking the price moves to their investing style ' +
+    '(and to a headline only if it clearly explains a move).',
+  `Then one short line for each coin that matters most today (at most ${MAX_COIN_LINES}): the ticker, a colon, and what to keep an eye on.`,
+  `Last line: "${BOTTOM_LINE}" and one practical step that fits their style today, e.g. review their plan or position size, ` +
+    'set a price alert, read a specific headline, or stay patient. A habit or action to consider, never a trade instruction.',
+  "Match their style: plain words and no jargon for beginners, the week's trend for long-term holders, today's momentum for traders.",
+  'Use only the numbers and headlines given. Never invent other numbers, price levels, support/resistance or events.',
+  'Never promise returns. Do not tell them to buy or sell.',
+  '',
+  'Example of the format only (made-up data, for a long-term holder). Mention only their coins, never the example\'s:',
+  "ETH's 9% slide this week matters more than today's small dip, and it is falling faster than BTC.",
+  'ETH: whether the weekly slide slows down.',
+  "BTC: holding up better than ETH, despite the ETF outflows in today's news.",
+  `${BOTTOM_LINE} a red week is a good moment to check that your plan still matches your time horizon, rather than reacting to it.`,
+].join('\n');
 
-/** One coin as prompt text: "SOL $100 (+9.5% 24h)". Used by `buildInsightPrompt`. */
+/**
+ * Puts each "TICKER: …" and the "Bottom line:" on its own line (models sometimes run them into one
+ * paragraph), trims each line and drops blank ones, so the card shows a compact list. Used by `generateInsight`.
+ */
+export const tidy = (text: string) =>
+  text
+    .replace(/([.!?])\s+(?=[A-Z]{2,6}:|Bottom line:)/g, '$1\n')
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .join('\n');
+
+/** "+9.5%" or "-1.2%". Used by `formatMarket`. */
+const signedPct = (pct: number) => `${pct >= 0 ? '+' : ''}${pct.toFixed(1)}%`;
+
+/**
+ * The 7-day change in percent: the current price against the first point of the 7-day sparkline,
+ * or null without a sparkline. Gives the model the week's trend, not just today's move.
+ * Used by `formatMarket`.
+ */
+export function change7dPct(market: CoinMarket): number | null {
+  const weekAgo = market.sparkline[0];
+  return weekAgo ? (market.priceUsd / weekAgo - 1) * 100 : null;
+}
+
+/** One coin as prompt text: "SOL $100 (+9.5% 24h, -3.0% 7d)". Used by `buildInsightPrompt`. */
 function formatMarket(m: CoinMarket): string {
-  const sign = m.change24hPct >= 0 ? '+' : '';
-  return `${m.symbol} $${m.priceUsd.toLocaleString('en-US')} (${sign}${m.change24hPct.toFixed(1)}% 24h)`;
+  const week = change7dPct(m);
+  const changes = [`${signedPct(m.change24hPct)} 24h`, ...(week === null ? [] : [`${signedPct(week)} 7d`])];
+  return `${m.symbol} $${m.priceUsd.toLocaleString('en-US')} (${changes.join(', ')})`;
 }
 
 /** The user message sent to the LLM; stored with each insight (DailyInsight.prompt). Used by `generateInsight`. */
 export function buildInsightPrompt(ctx: InsightContext): string {
   const marketLine = ctx.markets.length > 0 ? ctx.markets.map(formatMarket).join('; ') : ctx.symbols.join(', ');
+  const headlines = ctx.headlines.length > 0 ? ["Today's headlines about their coins:", ...ctx.headlines.map((h) => `- ${h}`)] : [];
   return [
-    `Investor type: ${ctx.investorType}.`,
+    `Investor type: ${ctx.investorType} (cares about: ${ctx.investorFocus.toLowerCase()}).`,
     `Interested in: ${ctx.interests.join(', ')}.`,
     `Their coins today: ${marketLine}.`,
-    'Write today\'s insight for them.',
+    ...headlines,
+    "Write today's insight for them.",
   ].join('\n');
 }
 
@@ -90,7 +140,7 @@ export async function generateInsight(ctx: InsightContext): Promise<Sourced<Gene
         },
         timeoutMs: 20_000, // free models can be slow
       });
-      const text = completion.choices[0]?.message.content?.trim();
+      const text = tidy(completion.choices[0]?.message.content ?? '');
       if (text) return { source: 'live', data: { text, model: completion.model, prompt } };
       console.warn('Insight: the model returned no text, using fallback.');
     } catch (err) {
